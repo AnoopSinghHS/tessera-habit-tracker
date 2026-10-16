@@ -109,34 +109,48 @@ fun HabitCard(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                Row(
+                Column(
                     modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Text(
-                        text = habit.title,
-                        style = TesseraType.CardTitle,
-                        color = colors.textPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = habit.title,
+                            style = TesseraType.CardTitle,
+                            color = colors.textPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
 
-                    if (target > 1) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(colors.surfaceRecessed)
-                                .padding(horizontal = 6.dp, vertical = 2.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "$todayCount/$target",
-                                style = TesseraType.MicroAxis,
-                                color = if (todayCount >= target) accentColor else colors.textSecondary
-                            )
+                        if (target > 1) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(colors.surfaceRecessed)
+                                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "$todayCount/$target",
+                                    style = TesseraType.MicroAxis,
+                                    color = if (todayCount >= target) accentColor else colors.textSecondary
+                                )
+                            }
                         }
+                    }
+
+                    if (habit.description.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = habit.description,
+                            style = TesseraType.CardSubtitle,
+                            color = colors.textSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
 

@@ -34,6 +34,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.tessera.habit.data.model.HabitStats
 import app.tessera.habit.data.model.HabitWithLogs
 import app.tessera.habit.ui.components.HabitIcons
@@ -124,7 +125,7 @@ fun AnalyticsScreen(
         contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 104.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // 1. Centered Editorial Header (matching Stitch right-hand dark screen)
+        // 1. Centered Editorial Header (clearly explaining this screen's purpose)
         item(key = "insights_header") {
             Column(
                 modifier = Modifier
@@ -133,14 +134,14 @@ fun AnalyticsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = formattedDate,
+                    text = "Habit Insights & Telemetry",
                     style = TesseraType.EditorialDateHeader,
                     color = colors.textPrimary,
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Annual rhythm across ${activeHabits.size} active habits",
+                    text = "Long-term consistency & cadence across ${activeHabits.size} active habits",
                     style = TesseraType.CardSubtitle,
                     color = colors.textSecondary,
                     textAlign = TextAlign.Center
@@ -247,8 +248,8 @@ fun AnalyticsScreen(
 }
 
 /**
- * Braun Horology Radial Tick Dial (left square card from Stitch dark screen).
- * Renders 48 fine radial tick marks around a warm ivory center dot.
+ * Braun Horology Radial Tick Dial (clarified with explicit title & percentage).
+ * Renders 48 fine radial tick marks with rolling 30-day percentage in the center.
  */
 @Composable
 fun BraunRadialConsistencyCard(
@@ -258,10 +259,10 @@ fun BraunRadialConsistencyCard(
 ) {
     val colors = TesseraTheme.colors
     val clampedRatio = consistencyRatio.coerceIn(0f, 1f)
+    val pct = (clampedRatio * 100f).roundToInt()
     val activeAccent = palette.colorForLevel(4, colors.isDark)
     val warmTick = palette.colorForLevel(3, colors.isDark)
     val inactiveTick = colors.borderSpecular
-    val centerDotColor = if (colors.isDark) colors.textPrimary else activeAccent
 
     Surface(
         modifier = modifier,
@@ -269,63 +270,95 @@ fun BraunRadialConsistencyCard(
         color = colors.surfaceCard,
         border = BorderStroke(1.dp, colors.borderHairline)
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
+                .padding(14.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val totalTicks = 48
-                val litTicks = (clampedRatio * totalTicks).roundToInt().coerceIn(8, totalTicks)
-                val center = Offset(size.width / 2f, size.height / 2f)
-                val outerRadius = (size.minDimension / 2f) * 0.88f
-                val innerRadius = outerRadius * 0.76f
-                val strokeWidthPx = 1.6.dp.toPx()
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = "30-DAY CONSISTENCY",
+                    style = TesseraType.MicroAxis,
+                    color = colors.textMuted
+                )
+                Text(
+                    text = "Rolling rate",
+                    style = TesseraType.CardSubtitle,
+                    color = colors.textSecondary
+                )
+            }
 
-                for (i in 0 until totalTicks) {
-                    val angleDeg = -90.0 + (i * (360.0 / totalTicks))
-                    val angleRad = Math.toRadians(angleDeg)
-                    val cosA = cos(angleRad).toFloat()
-                    val sinA = sin(angleRad).toFloat()
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f)
+                    .padding(4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val totalTicks = 48
+                    val litTicks = (clampedRatio * totalTicks).roundToInt().coerceIn(0, totalTicks)
+                    val center = Offset(size.width / 2f, size.height / 2f)
+                    val outerRadius = (size.minDimension / 2f) * 0.95f
+                    val innerRadius = outerRadius * 0.78f
+                    val strokeWidthPx = 1.6.dp.toPx()
 
-                    val start = Offset(
-                        x = center.x + innerRadius * cosA,
-                        y = center.y + innerRadius * sinA
-                    )
-                    val end = Offset(
-                        x = center.x + outerRadius * cosA,
-                        y = center.y + outerRadius * sinA
-                    )
+                    for (i in 0 until totalTicks) {
+                        val angleDeg = -90.0 + (i * (360.0 / totalTicks))
+                        val angleRad = Math.toRadians(angleDeg)
+                        val cosA = cos(angleRad).toFloat()
+                        val sinA = sin(angleRad).toFloat()
 
-                    val tickColor = when {
-                        i < litTicks / 2 -> activeAccent
-                        i < litTicks -> warmTick
-                        else -> inactiveTick
+                        val start = Offset(
+                            x = center.x + innerRadius * cosA,
+                            y = center.y + innerRadius * sinA
+                        )
+                        val end = Offset(
+                            x = center.x + outerRadius * cosA,
+                            y = center.y + outerRadius * sinA
+                        )
+
+                        val tickColor = when {
+                            i < litTicks / 2 -> activeAccent
+                            i < litTicks -> warmTick
+                            else -> inactiveTick
+                        }
+
+                        drawLine(
+                            color = tickColor,
+                            start = start,
+                            end = end,
+                            strokeWidth = strokeWidthPx,
+                            cap = StrokeCap.Round
+                        )
                     }
-
-                    drawLine(
-                        color = tickColor,
-                        start = start,
-                        end = end,
-                        strokeWidth = strokeWidthPx,
-                        cap = StrokeCap.Round
-                    )
                 }
 
-                // Warm sculptural center dot
-                drawCircle(
-                    color = centerDotColor,
-                    radius = 9.dp.toPx(),
-                    center = center
-                )
+                // Center Typography: Big Percentage + "RATE"
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "$pct%",
+                        style = TesseraType.TelemetryHero,
+                        color = activeAccent
+                    )
+                    Text(
+                        text = "CONSISTENCY",
+                        style = TesseraType.MicroAxis,
+                        color = colors.textMuted
+                    )
+                }
             }
         }
     }
 }
 
 /**
- * 7-Bar Vertical Pill Chart ("S M T W T F S") matching the right square card in the Stitch concept.
+ * 7-Bar Vertical Pill Chart ("S M T W T F S") with explicit title and day counts.
  */
 @Composable
 fun BraunWeeklyPillChartCard(
@@ -346,9 +379,27 @@ fun BraunWeeklyPillChartCard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.Bottom
+                .padding(14.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = "WEEKDAY RHYTHM",
+                    style = TesseraType.MicroAxis,
+                    color = colors.textMuted
+                )
+                Text(
+                    text = "Cadence by day",
+                    style = TesseraType.CardSubtitle,
+                    color = colors.textSecondary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -359,13 +410,10 @@ fun BraunWeeklyPillChartCard(
                 for (i in 0..6) {
                     val count = sundayFirstCounts.getOrElse(i) { 0 }
                     val fillFraction = if (maxCount > 0 && count > 0) {
-                        (count.toFloat() / maxCount.toFloat()).coerceIn(0.24f, 0.92f)
+                        (count.toFloat() / maxCount.toFloat()).coerceIn(0.18f, 1f)
                     } else {
-                        0.32f
+                        0.08f
                     }
-                    // Track height varies gently like an equalizer in the Stitch concept
-                    val trackMultipliers = listOf(0.56f, 0.72f, 0.96f, 0.80f, 0.68f, 0.62f, 0.52f)
-                    val trackFraction = trackMultipliers[i]
 
                     Column(
                         modifier = Modifier
@@ -374,10 +422,21 @@ fun BraunWeeklyPillChartCard(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Bottom
                     ) {
+                        if (count > 0) {
+                            Text(
+                                text = count.toString(),
+                                style = TesseraType.MicroAxis,
+                                color = colors.textMuted,
+                                fontSize = 8.sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                        }
+
                         Box(
                             modifier = Modifier
                                 .width(7.dp)
-                                .fillMaxHeight(trackFraction)
+                                .weight(1f, fill = false)
+                                .height(52.dp)
                                 .clip(CircleShape)
                                 .background(colors.surfaceRecessed),
                             contentAlignment = Alignment.BottomCenter
@@ -387,16 +446,16 @@ fun BraunWeeklyPillChartCard(
                                     .width(7.dp)
                                     .fillMaxHeight(fillFraction)
                                     .clip(CircleShape)
-                                    .background(fillPillColor)
+                                    .background(if (count > 0) fillPillColor else colors.surfaceRecessed)
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
 
                         Text(
                             text = dayInitials[i],
                             style = TesseraType.MicroAxis,
-                            color = colors.textSecondary
+                            color = if (count > 0) colors.textPrimary else colors.textMuted
                         )
                     }
                 }

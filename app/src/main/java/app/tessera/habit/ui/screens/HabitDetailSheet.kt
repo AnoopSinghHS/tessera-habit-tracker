@@ -60,6 +60,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.tessera.habit.api.HabitApiContract
 import app.tessera.habit.data.local.HabitEntity
 import app.tessera.habit.data.model.HabitWithLogs
@@ -174,6 +175,8 @@ fun HabitDetailSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(top = 8.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 18.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -192,6 +195,111 @@ fun HabitDetailSheet(
                 onDelete = { showDeleteConfirm = true },
                 onClose = onDismiss
             )
+
+            // 1b. Atomic Habit Architecture (James Clear / Atoms Methodology)
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                color = colors.surfaceCard,
+                border = BorderStroke(1.dp, colors.borderHairline)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Atomic Habit Architecture",
+                            style = TesseraType.CardSubtitle,
+                            color = colors.textSecondary
+                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(palette.colorForLevel(1, colors.isDark))
+                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "ATOMS",
+                                style = TesseraType.MicroAxis,
+                                color = palette.colorForLevel(4, colors.isDark)
+                            )
+                        }
+                    }
+
+                    // Habit Stacking Cue
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(colors.surfaceRecessed)
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = "HABIT STACKING CUE (LAW 1)",
+                            style = TesseraType.MicroAxis,
+                            color = colors.textMuted
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = if (habit.description.isNotBlank()) habit.description else "After my anchor routine, I will practice ${habit.title}.",
+                            style = TesseraType.CardTitle.copy(fontSize = 14.sp),
+                            color = colors.textPrimary
+                        )
+                    }
+
+                    // 2-Minute Micro Rule & Grace Shield
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(colors.surfaceRecessed)
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                text = "2-MIN RULE (LAW 3)",
+                                style = TesseraType.MicroAxis,
+                                color = colors.textMuted
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Show up for 2 minutes to cast a vote for your identity.",
+                                style = TesseraType.CardSubtitle,
+                                color = colors.textSecondary
+                            )
+                        }
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(colors.surfaceRecessed)
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                text = "NEVER MISS TWICE",
+                                style = TesseraType.MicroAxis,
+                                color = colors.textMuted
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Missing once is an accident. Missing twice is a new habit.",
+                                style = TesseraType.CardSubtitle,
+                                color = colors.textSecondary
+                            )
+                        }
+                    }
+                }
+            }
 
             // 2. Full-Year 52-Week Scrollable Contribution Matrix
             Surface(

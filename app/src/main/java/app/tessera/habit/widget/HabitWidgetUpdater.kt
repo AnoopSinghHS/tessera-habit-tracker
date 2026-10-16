@@ -277,7 +277,7 @@ object HabitWidgetUpdater {
                 context = context,
                 habitWithLogs = selectedHabit,
                 isDarkTheme = isDark,
-                weeks = 18
+                weeks = 22
             )
         }
         views.setImageViewBitmap(R.id.widget_heatmap_image, heatmapBitmap)

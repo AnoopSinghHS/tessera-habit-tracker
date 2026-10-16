@@ -42,15 +42,15 @@ object WidgetHeatmapBitmapRenderer {
         context: Context,
         habitWithLogs: HabitWithLogs?,
         isDarkTheme: Boolean = true,
-        weeks: Int = 18
+        weeks: Int = 22
     ): Bitmap {
         return renderHeatmap(
             context = context,
             habitWithLogs = habitWithLogs,
             isDarkTheme = isDarkTheme,
             weeks = weeks,
-            targetWidthDp = 316f,
-            targetHeightDp = 96f,
+            targetWidthDp = 350f,
+            targetHeightDp = 92f,
             showMonthLabels = true
         )
     }

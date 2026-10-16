@@ -87,6 +87,8 @@ fun HabitEditorDialog(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(top = 8.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -99,12 +101,12 @@ fun HabitEditorDialog(
             ) {
                 Column {
                     Text(
-                        text = if (isEditing) "CONFIGURE RITUAL" else "ARCHITECT NEW RITUAL",
+                        text = if (isEditing) "HABIT ARCHITECTURE" else "ATOMIC HABIT BUILDER",
                         style = TesseraType.MicroAxis,
                         color = selectedPalette.colorForLevel(4, colors.isDark)
                     )
                     Text(
-                        text = if (isEditing) "Edit ${initialHabit?.title}" else "Create Daily Ritual",
+                        text = if (isEditing) "Edit ${initialHabit?.title}" else "New Atomic Habit",
                         style = TesseraType.SectionTitle,
                         color = colors.textPrimary
                     )
@@ -190,9 +192,9 @@ fun HabitEditorDialog(
                 }
             }
 
-            // 2. Identity Inputs (Title, Programmatic Slug, Description)
+            // 2. Identity Inputs (Title, Atomic Stacking Cue, Programmatic Slug)
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("IDENTITY & API SLUG", style = TesseraType.MicroAxis, color = colors.textMuted)
+                Text("ATOMIC HABIT SPECIFICATION", style = TesseraType.MicroAxis, color = colors.textMuted)
 
                 OutlinedTextField(
                     value = title,
@@ -202,44 +204,40 @@ fun HabitEditorDialog(
                             slug = HabitEntity.generateSlug(newTitle)
                         }
                     },
-                    label = { Text("Ritual Title", style = TesseraType.CardSubtitle) },
-                    placeholder = { Text("e.g., Deep Work Session", style = TesseraType.CardSubtitle) },
+                    label = { Text("Habit Title", style = TesseraType.CardSubtitle) },
+                    placeholder = { Text("e.g., Vocal Scales, Write 500 Words, Strength Workout", style = TesseraType.CardSubtitle) },
                     singleLine = true,
                     colors = editorTextFieldColors(selectedPalette.level3),
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    OutlinedTextField(
-                        value = slug,
-                        onValueChange = { raw ->
-                            slugManuallyEdited = true
-                            slug = raw.lowercase(Locale.US).replace(Regex("[^a-z0-9-]+"), "-")
-                        },
-                        label = { Text("Programmatic Slug (#)", style = TesseraType.CardSubtitle) },
-                        placeholder = { Text("deep-work", style = TesseraType.CodeSnippet) },
-                        textStyle = TesseraType.CodeSnippet.copy(color = colors.textPrimary),
-                        singleLine = true,
-                        colors = editorTextFieldColors(selectedPalette.level3),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.weight(1f)
-                    )
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Habit Stacking Cue (Law 1: Make It Obvious)", style = TesseraType.CardSubtitle) },
+                    placeholder = { Text("After [Anchor Habit], I will [New Habit] — e.g. After morning coffee...", style = TesseraType.CardSubtitle) },
+                    singleLine = false,
+                    maxLines = 2,
+                    colors = editorTextFieldColors(selectedPalette.level3),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it },
-                        label = { Text("Cue / Subtitle", style = TesseraType.CardSubtitle) },
-                        placeholder = { Text("Before 10 AM", style = TesseraType.CardSubtitle) },
-                        singleLine = true,
-                        colors = editorTextFieldColors(selectedPalette.level3),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                OutlinedTextField(
+                    value = slug,
+                    onValueChange = { raw ->
+                        slugManuallyEdited = true
+                        slug = raw.lowercase(Locale.US).replace(Regex("[^a-z0-9-]+"), "-")
+                    },
+                    label = { Text("External API / Intent Slug (#)", style = TesseraType.CardSubtitle) },
+                    placeholder = { Text("e.g., vocal-practice", style = TesseraType.CodeSnippet) },
+                    textStyle = TesseraType.CodeSnippet.copy(color = colors.textPrimary),
+                    singleLine = true,
+                    colors = editorTextFieldColors(selectedPalette.level3),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
 
             // 3. Category Pill Selector
