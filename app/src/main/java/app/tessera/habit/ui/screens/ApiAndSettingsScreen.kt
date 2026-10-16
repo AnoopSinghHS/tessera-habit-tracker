@@ -486,7 +486,7 @@ fun ApiAndSettingsScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         AtomicMethodologyRow(
                             title = "Law 1: Make It Obvious (Habit Stacking)",
-                            description = "Link habits: "After [Anchor Habit], I will [New Habit]"."
+                            description = "Link habits: 'After [Anchor Habit], I will [New Habit]'."
                         )
                         AtomicMethodologyRow(
                             title = "Law 2: Make It Attractive (Identity Voting)",
