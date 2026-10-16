@@ -657,6 +657,51 @@ object HabitIcons {
         }
     }
 
+    // 33. "sun" -> Morning Sun
+    val MorningSun: ImageVector by lazy {
+        fineLineIcon("MorningSun") {
+            strokedPath {
+                moveTo(12f, 4f)
+                lineTo(12f, 2f)
+                moveTo(12f, 22f)
+                lineTo(12f, 20f)
+                moveTo(4f, 12f)
+                lineTo(2f, 12f)
+                moveTo(22f, 12f)
+                lineTo(20f, 12f)
+                moveTo(17.66f, 6.34f)
+                lineTo(19.07f, 4.93f)
+                moveTo(4.93f, 19.07f)
+                lineTo(6.34f, 17.66f)
+                moveTo(6.34f, 6.34f)
+                lineTo(4.93f, 4.93f)
+                moveTo(19.07f, 19.07f)
+                lineTo(17.66f, 17.66f)
+                moveTo(17f, 12f)
+                curveTo(17f, 14.76f, 14.76f, 17f, 12f, 17f)
+                curveTo(9.24f, 17f, 7f, 14.76f, 7f, 12f)
+                curveTo(7f, 9.24f, 9.24f, 7f, 12f, 7f)
+                curveTo(14.76f, 7f, 17f, 9.24f, 17f, 12f)
+            }
+        }
+    }
+
+    // 34. "moon" -> Evening Moon
+    val EveningMoon: ImageVector by lazy {
+        fineLineIcon("EveningMoon") {
+            strokedPath {
+                moveTo(21f, 12.79f)
+                curveTo(20.84f, 17.37f, 17.1f, 21f, 12.5f, 21f)
+                curveTo(7.8f, 21f, 4f, 17.2f, 4f, 12.5f)
+                curveTo(4f, 7.9f, 7.63f, 4.16f, 12.21f, 4f)
+                curveTo(11.35f, 5.37f, 10.87f, 6.99f, 10.87f, 8.71f)
+                curveTo(10.87f, 13.43f, 14.69f, 17.25f, 19.41f, 17.25f)
+                curveTo(19.98f, 17.25f, 20.52f, 17.18f, 21f, 17.06f)
+                close()
+            }
+        }
+    }
+
     val allIcons: List<HabitIconOption> = listOf(
         // Singing & Music
         HabitIconOption("mic", "Studio Mic", StudioMic),
@@ -697,13 +742,17 @@ object HabitIcons {
         HabitIconOption("sprout", "Growth", GrowthSprout),
         HabitIconOption("target", "Target", ConcentricTarget),
         HabitIconOption("compass", "Compass", WayfindingCompass),
-        HabitIconOption("star", "North Star", NorthStar)
+        HabitIconOption("star", "North Star", NorthStar),
+        HabitIconOption("sun", "Morning Sun", MorningSun),
+        HabitIconOption("moon", "Evening Moon", EveningMoon)
     )
 
     fun getIcon(key: String?): ImageVector = resolve(key)
 
     fun resolve(key: String?): ImageVector {
         return when (key?.trim()?.lowercase()) {
+            "sun", "day", "light" -> MorningSun
+            "moon", "night", "dark" -> EveningMoon
             "mic", "microphone", "sing", "singing", "vocal", "riyaaz", "voice" -> StudioMic
             "waveform", "audio", "sound", "freq" -> AudioWaveform
             "clef", "treble", "music", "song" -> TrebleClef
