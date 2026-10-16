@@ -26,7 +26,7 @@ class TesseraUnitTest {
     fun `generateSlug normalizes titles into clean URL and ADB safe slugs`() {
         assertEquals("deep-work-session", HabitEntity.generateSlug("Deep Work Session"))
         assertEquals("hydration-2-5l", HabitEntity.generateSlug("  Hydration 2.5L!  "))
-        assertEquals("read-30-pages", HabitEntity.generateSlug("Read 30 Pages / Day"))
+        assertEquals("read-30-pages-day", HabitEntity.generateSlug("Read 30 Pages / Day"))
         assertEquals("strength-training", HabitEntity.generateSlug("---Strength___Training---"))
 
         val fallbackSlug = HabitEntity.generateSlug("   !!!   ")
