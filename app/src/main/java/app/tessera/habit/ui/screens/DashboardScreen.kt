@@ -21,14 +21,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.GridView
-import androidx.compose.material.icons.rounded.LightMode
-import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material.icons.rounded.ViewAgenda
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -41,19 +38,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.tessera.habit.data.model.HabitWithLogs
 import app.tessera.habit.ui.components.HabitCard
 import app.tessera.habit.ui.components.HabitCompactBentoCard
+import app.tessera.habit.ui.components.HabitIcons
 import app.tessera.habit.ui.theme.HabitPalette
 import app.tessera.habit.ui.theme.TesseraTheme
 import app.tessera.habit.ui.theme.TesseraType
 import app.tessera.habit.ui.viewmodel.TesseraUiState
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.time.temporal.WeekFields
 import java.util.Locale
-import kotlin.math.roundToInt
 
 @Composable
 fun DashboardScreen(
@@ -75,38 +73,39 @@ fun DashboardScreen(
         modifier = modifier
             .fillMaxSize()
             .background(colors.surfaceAbyss),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 104.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 104.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // 1. Top Editorial Bar & Today's Rituals Momentum HUD
-        item(key = "momentum_header") {
-            MomentumEditorialHeader(
+        // 1. Centered Editorial Date Header ("Friday, Oct 16" + "3 of 4 habits completed")
+        item(key = "editorial_header") {
+            EditorialDashboardHeader(
                 activeHabits = uiState.activeHabits,
                 isCompactBentoView = uiState.isCompactBentoView,
                 isDarkTheme = colors.isDark,
                 today = today,
                 onToggleViewMode = onToggleViewMode,
                 onToggleTheme = onToggleTheme,
-                onOpenApiBridge = onOpenApiBridge,
                 onOpenCreateHabit = onOpenCreateHabit
             )
         }
 
-        // 2. Category Filter Pill Strip
-        item(key = "category_strip") {
-            CategoryFilterStrip(
-                categories = uiState.categories,
-                selectedCategory = uiState.selectedCategory,
-                activeCount = uiState.activeHabits.size,
-                archivedCount = uiState.archivedHabits.size,
-                onSelectCategory = onSelectCategory
-            )
+        // 2. Subtle Category Filter Strip
+        if (uiState.categories.size > 1) {
+            item(key = "category_strip") {
+                CategoryFilterStrip(
+                    categories = uiState.categories,
+                    selectedCategory = uiState.selectedCategory,
+                    activeCount = uiState.activeHabits.size,
+                    archivedCount = uiState.archivedHabits.size,
+                    onSelectCategory = onSelectCategory
+                )
+            }
         }
 
-        // 3. Habit Cards (Architectural Full Cards OR 2-Column Bento Compact Grid)
+        // 3. Habit Cards (Asymmetric Split Cards or 2-Column Compact Bento Grid)
         if (uiState.filteredHabits.isEmpty()) {
             item(key = "empty_state") {
-                EmptyRitualsArchitecturalCard(
+                EmptyHabitsEditorialCard(
                     isArchivedFilter = uiState.selectedCategory.equals("ARCHIVED", ignoreCase = true),
                     onOpenCreateHabit = onOpenCreateHabit,
                     onResetDemoData = onResetDemoData
@@ -120,7 +119,7 @@ fun DashboardScreen(
             ) { rowHabits ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     val first = rowHabits[0]
                     HabitCompactBentoCard(
@@ -161,209 +160,98 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun MomentumEditorialHeader(
+private fun EditorialDashboardHeader(
     activeHabits: List<HabitWithLogs>,
     isCompactBentoView: Boolean,
     isDarkTheme: Boolean,
     today: LocalDate,
     onToggleViewMode: () -> Unit,
     onToggleTheme: () -> Unit,
-    onOpenApiBridge: () -> Unit,
     onOpenCreateHabit: () -> Unit
 ) {
     val colors = TesseraTheme.colors
-    val dateOverline = remember(today) {
-        val formatter = DateTimeFormatter.ofPattern("EEE · MMM d", Locale.US)
-        val weekOfYear = today.get(WeekFields.ISO.weekOfWeekBasedYear())
-        "${today.format(formatter).uppercase(Locale.US)} · WEEK $weekOfYear"
+    val formattedDate = remember(today) {
+        val formatter = DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.US)
+        today.format(formatter)
     }
 
     val totalActive = activeHabits.size
     val completedTodayCount = remember(activeHabits, today) {
         activeHabits.count { it.isCompletedOn(today) }
     }
-    val momentumPct = if (totalActive > 0) {
-        ((completedTodayCount.toFloat() / totalActive.toFloat()) * 100f).roundToInt()
-    } else {
-        0
-    }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        // Editorial Top Bar
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp, bottom = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Minimalist utility bar above or aligned with editorial header
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(
-                    text = dateOverline,
-                    style = TesseraType.TelemetryBadge,
-                    color = colors.textSecondary
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "Tessera",
-                    style = TesseraType.DisplayMomentum,
-                    color = colors.textPrimary
-                )
-            }
-
-            // Right Action Cluster
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                HeaderIconButton(
-                    icon = if (isCompactBentoView) Icons.Rounded.ViewAgenda else Icons.Rounded.GridView,
-                    contentDescription = if (isCompactBentoView) "Architectural Cards" else "2-Column Bento Grid",
-                    onClick = onToggleViewMode
-                )
-
-                HeaderIconButton(
-                    icon = if (isDarkTheme) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
-                    contentDescription = "Toggle Theme",
-                    onClick = onToggleTheme
-                )
-
-                HeaderIconButton(
-                    icon = Icons.Rounded.Terminal,
-                    contentDescription = "API Bridge",
-                    onClick = onOpenApiBridge
-                )
-
-                // Primary "+ Ritual" Trigger
-                Box(
-                    modifier = Modifier
-                        .height(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(HabitPalette.EmeraldMatrix.colorForLevel(4, colors.isDark))
-                        .clickable(onClick = onOpenCreateHabit)
-                        .padding(horizontal = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = "New Ritual",
-                            tint = HabitPalette.EmeraldMatrix.onAccent,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = "NEW",
-                            style = TesseraType.TelemetryBadge,
-                            color = HabitPalette.EmeraldMatrix.onAccent
-                        )
-                    }
-                }
-            }
+            HeaderIconButton(
+                icon = if (isDarkTheme) HabitIcons.MorningSun else HabitIcons.EveningMoon,
+                contentDescription = "Toggle theme",
+                onClick = onToggleTheme
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            HeaderIconButton(
+                icon = if (isCompactBentoView) Icons.Rounded.ViewAgenda else Icons.Rounded.GridView,
+                contentDescription = if (isCompactBentoView) "Full card view" else "Compact grid view",
+                onClick = onToggleViewMode
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            HeaderIconButton(
+                icon = Icons.Rounded.Add,
+                contentDescription = "New habit",
+                onClick = onOpenCreateHabit
+            )
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
-        // Today's Rituals Momentum HUD Strip
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            color = colors.surfaceCard,
-            border = BorderStroke(1.dp, colors.borderHairline)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 11.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "TODAY'S MOMENTUM",
-                        style = TesseraType.TelemetryBadge,
-                        color = colors.textSecondary
-                    )
-                    Text(
-                        text = String.format(
-                            Locale.US,
-                            "%02d / %02d RITUALS · %d%%",
-                            completedTodayCount,
-                            totalActive,
-                            momentumPct
-                        ),
-                        style = TesseraType.TelemetryBadge,
-                        color = if (completedTodayCount == totalActive && totalActive > 0) {
-                            HabitPalette.EmeraldMatrix.colorForLevel(4, colors.isDark)
-                        } else {
-                            colors.textPrimary
-                        }
-                    )
-                }
+        Text(
+            text = formattedDate,
+            style = TesseraType.EditorialDateHeader,
+            color = colors.textPrimary,
+            textAlign = TextAlign.Center
+        )
 
-                Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
-                // Segmented Per-Habit Chromatic Progress Bar
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(5.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    if (activeHabits.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(colors.surfaceRecessed)
-                        )
-                    } else {
-                        activeHabits.forEach { hwl ->
-                            val palette = HabitPalette.resolve(hwl.habit.colorKey)
-                            val level = hwl.intensityLevelForDate(today)
-                            val segColor = if (level > 0) {
-                                palette.colorForLevel(level, colors.isDark)
-                            } else {
-                                colors.surfaceRecessed
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(5.dp)
-                                    .clip(RoundedCornerShape(3.dp))
-                                    .background(segColor)
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        Text(
+            text = "$completedTodayCount of $totalActive habits completed",
+            style = TesseraType.CardSubtitle,
+            color = colors.textSecondary,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
 @Composable
 private fun HeaderIconButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit
 ) {
     val colors = TesseraTheme.colors
     Box(
         modifier = Modifier
-            .size(36.dp)
-            .clip(RoundedCornerShape(10.dp))
+            .size(32.dp)
+            .clip(CircleShape)
             .background(colors.surfaceCard)
-            .border(1.dp, colors.borderHairline, RoundedCornerShape(10.dp))
+            .border(1.dp, colors.borderHairline, CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = colors.textPrimary,
-            modifier = Modifier.size(18.dp)
+            tint = colors.textSecondary,
+            modifier = Modifier.size(16.dp)
         )
     }
 }
@@ -389,29 +277,31 @@ private fun CategoryFilterStrip(
         categories.forEach { category ->
             val isSelected = category.equals(selectedCategory, ignoreCase = true)
             val label = when {
-                category.equals("ALL", ignoreCase = true) -> "ALL ($activeCount)"
-                category.equals("ARCHIVED", ignoreCase = true) -> "ARCHIVED ($archivedCount)"
-                else -> category.uppercase(Locale.US)
+                category.equals("ALL", ignoreCase = true) -> "All ($activeCount)"
+                category.equals("ARCHIVED", ignoreCase = true) -> "Archived ($archivedCount)"
+                else -> category.replaceFirstChar {
+                    if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString()
+                }
             }
 
             AnimatedContent(targetState = isSelected, label = "categoryPill") { active ->
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(20.dp))
                         .background(if (active) colors.textPrimary else colors.surfaceCard)
                         .border(
                             width = 1.dp,
                             color = if (active) colors.textPrimary else colors.borderHairline,
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(20.dp)
                         )
                         .clickable { onSelectCategory(category) }
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                        .padding(horizontal = 14.dp, vertical = 6.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = label,
                         style = TesseraType.TelemetryBadge,
-                        color = if (active) colors.surfaceAbyss else colors.textSecondary
+                        color = if (active) colors.surfaceCard else colors.textSecondary
                     )
                 }
             }
@@ -420,50 +310,53 @@ private fun CategoryFilterStrip(
 }
 
 @Composable
-private fun EmptyRitualsArchitecturalCard(
+private fun EmptyHabitsEditorialCard(
     isArchivedFilter: Boolean,
     onOpenCreateHabit: () -> Unit,
     onResetDemoData: () -> Unit
 ) {
     val colors = TesseraTheme.colors
+    val accent = HabitPalette.EmeraldMatrix.colorForLevel(4, colors.isDark)
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 12.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         color = colors.surfaceCard,
         border = BorderStroke(1.dp, colors.borderHairline)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
+                .padding(26.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                imageVector = Icons.Rounded.AutoAwesome,
+                imageVector = HabitIcons.OctahedronPrism,
                 contentDescription = null,
-                tint = HabitPalette.EmeraldMatrix.colorForLevel(4, colors.isDark),
-                modifier = Modifier.size(32.dp)
+                tint = accent,
+                modifier = Modifier.size(30.dp)
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
             Text(
-                text = if (isArchivedFilter) "No Archived Rituals" else "Zero Active Rituals",
+                text = if (isArchivedFilter) "No Archived Habits" else "Begin Your Daily Practice",
                 style = TesseraType.SectionTitle,
                 color = colors.textPrimary
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = if (isArchivedFilter) {
-                    "Archived habits remain stored in your local vault without cluttering your daily momentum header."
+                    "Archived habits rest quietly in your local archive without appearing on your daily canvas."
                 } else {
-                    "Start building your contribution matrix by defining a daily ritual or restoring the 16-week showcase portfolio."
+                    "Create a daily habit to begin recording your contribution heatmap, or restore the sample habits."
                 },
                 style = TesseraType.CardSubtitle,
-                color = colors.textSecondary
+                color = colors.textSecondary,
+                textAlign = TextAlign.Center
             )
             if (!isArchivedFilter) {
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -471,10 +364,10 @@ private fun EmptyRitualsArchitecturalCard(
                     Button(
                         onClick = onOpenCreateHabit,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = HabitPalette.EmeraldMatrix.colorForLevel(4, colors.isDark),
-                            contentColor = HabitPalette.EmeraldMatrix.onAccent
+                            containerColor = accent,
+                            contentColor = HabitPalette.EmeraldMatrix.onAccentFor(colors.isDark)
                         ),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Add,
@@ -482,16 +375,16 @@ private fun EmptyRitualsArchitecturalCard(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("CREATE RITUAL", style = TesseraType.TelemetryBadge)
+                        Text("New Habit", style = TesseraType.TelemetryBadge)
                     }
 
                     OutlinedButton(
                         onClick = onResetDemoData,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(12.dp),
                         border = BorderStroke(1.dp, colors.borderSpecular)
                     ) {
                         Text(
-                            text = "LOAD DEMO DATA",
+                            text = "Restore Samples",
                             style = TesseraType.TelemetryBadge,
                             color = colors.textPrimary
                         )

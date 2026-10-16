@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -112,6 +111,20 @@ fun HabitDetailSheet(
         mutableStateOf(selectedSavedNote)
     }
 
+    val sundayFirstWeekdayCounts = remember(stats.weekdayDistribution) {
+        val monFirst = stats.weekdayDistribution
+        if (monFirst.size < 7) List(7) { 0 }
+        else listOf(
+            monFirst[6],
+            monFirst[0],
+            monFirst[1],
+            monFirst[2],
+            monFirst[3],
+            monFirst[4],
+            monFirst[5]
+        )
+    }
+
     LaunchedEffect(selectedDate) {
         displayedMonth = YearMonth.from(selectedDate)
     }
@@ -125,7 +138,7 @@ fun HabitDetailSheet(
             title = { Text("Delete \"${habit.title}\"?", style = TesseraType.SectionTitle) },
             text = {
                 Text(
-                    "This permanently removes the ritual and all ${stats.totalCompletions} historical contribution logs.",
+                    "This permanently removes this habit and all ${stats.totalCompletions} historical check-ins.",
                     style = TesseraType.CardSubtitle
                 )
             },
@@ -136,16 +149,16 @@ fun HabitDetailSheet(
                         onDeleteHabit(habit.id)
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = HabitPalette.CrimsonEmber.level4,
-                        contentColor = HabitPalette.CrimsonEmber.onAccent
+                        containerColor = HabitPalette.CrimsonEmber.colorForLevel(4, colors.isDark),
+                        contentColor = HabitPalette.CrimsonEmber.onAccentFor(colors.isDark)
                     )
                 ) {
-                    Text("DELETE", style = TesseraType.TelemetryBadge)
+                    Text("Delete", style = TesseraType.TelemetryBadge)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("CANCEL", style = TesseraType.TelemetryBadge, color = colors.textSecondary)
+                    Text("Cancel", style = TesseraType.TelemetryBadge, color = colors.textSecondary)
                 }
             }
         )
@@ -162,10 +175,10 @@ fun HabitDetailSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .padding(horizontal = 18.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // 1. Top Header with Icon, Title, Slug Chip, and Edit/Archive/Delete Actions
+            // 1. Top Header with Fine-Line Icon, Title, Deep Link Chip, and Actions
             DetailHeaderBar(
                 habit = habit,
                 palette = palette,
@@ -180,26 +193,17 @@ fun HabitDetailSheet(
                 onClose = onDismiss
             )
 
-            // 2. 2x2 Monospace Telemetry Bento Grid
-            TelemetryBentoGrid(
-                currentStreak = stats.currentStreak,
-                bestStreak = stats.bestStreak,
-                consistency30d = (stats.completionRate30Days * 100f).roundToInt(),
-                totalCompletions = stats.totalCompletions,
-                palette = palette
-            )
-
-            // 3. Full-Year 52-Week Scrollable GitHub Heatmap Explorer
+            // 2. Full-Year 52-Week Scrollable Contribution Matrix
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(18.dp),
                 color = colors.surfaceCard,
                 border = BorderStroke(1.dp, colors.borderHairline)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(14.dp)
+                        .padding(16.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -207,23 +211,23 @@ fun HabitDetailSheet(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "52-WEEK CONTRIBUTION MATRIX",
-                            style = TesseraType.TelemetryBadge,
-                            color = palette.colorForLevel(4, colors.isDark)
+                            text = "52-Week Contribution History",
+                            style = TesseraType.CardSubtitle,
+                            color = colors.textSecondary
                         )
                         HeatmapIntensityLegend(palette = palette)
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     GithubHeatmapGrid(
                         countsByEpochDay = countsByEpochDay,
                         targetPerDay = habit.targetPerDay,
                         palette = palette,
                         weeks = 52,
-                        cellSize = 11.dp,
+                        cellSize = 11.5.dp,
                         cellGap = 3.dp,
-                        cornerRadius = 2.5.dp,
+                        cornerRadius = 3.dp,
                         showWeekdayLabels = true,
                         showMonthLabels = true,
                         scrollable = true,
@@ -237,7 +241,37 @@ fun HabitDetailSheet(
                 }
             }
 
-            // 4. Selected Date Inspector & Daily Field Note Editor
+            // 3. Braun Horology Radial Dial + 7-Day Vertical Pill Chart (matching Stitch dark screen)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                BraunRadialConsistencyCard(
+                    consistencyRatio = stats.completionRate30Days,
+                    palette = palette,
+                    modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(1f)
+                )
+
+                BraunWeeklyPillChartCard(
+                    sundayFirstCounts = sundayFirstWeekdayCounts,
+                    modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(1f)
+                )
+            }
+
+            // 4. 2x2 Editorial Metric Bento Grid
+            TelemetryBentoGrid(
+                currentStreak = stats.currentStreak,
+                bestStreak = stats.bestStreak,
+                consistency30d = (stats.completionRate30Days * 100f).roundToInt(),
+                totalCompletions = stats.totalCompletions,
+                palette = palette
+            )
+
+            // 5. Selected Day Inspector & Reflection Note
             SelectedDayInspectorCard(
                 selectedDate = selectedDate,
                 count = selectedCount,
@@ -257,7 +291,7 @@ fun HabitDetailSheet(
                 }
             )
 
-            // 5. Interactive Monthly Calendar Back-Fill View
+            // 6. Interactive Monthly Calendar Back-Fill View
             MonthlyBackfillCalendarCard(
                 displayedMonth = displayedMonth,
                 today = today,
@@ -278,12 +312,6 @@ fun HabitDetailSheet(
                 }
             )
 
-            // 6. Weekday Rhythm Distribution Telemetry Card
-            WeekdayDistributionCard(
-                weekdayDistribution = stats.weekdayDistribution,
-                palette = palette
-            )
-
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -300,6 +328,8 @@ private fun DetailHeaderBar(
     onClose: () -> Unit
 ) {
     val colors = TesseraTheme.colors
+    val accent = palette.colorForLevel(4, colors.isDark)
+
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -307,16 +337,16 @@ private fun DetailHeaderBar(
         ) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(42.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(palette.colorForLevel(1, colors.isDark))
-                    .border(1.dp, palette.level3.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
+                    .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = HabitIcons.resolve(habit.iconKey),
                     contentDescription = habit.title,
-                    tint = palette.colorForLevel(4, colors.isDark),
+                    tint = accent,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -342,7 +372,6 @@ private fun DetailHeaderBar(
                 }
             }
 
-            // Action Buttons Cluster
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 MiniHeaderActionBtn(Icons.Rounded.Edit, "Edit", onEdit)
                 MiniHeaderActionBtn(
@@ -357,7 +386,6 @@ private fun DetailHeaderBar(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Programmatic Slug & Category Metadata Row
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -365,13 +393,13 @@ private fun DetailHeaderBar(
         ) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .background(colors.surfaceCard)
-                    .border(1.dp, colors.borderHairline, RoundedCornerShape(6.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .border(1.dp, colors.borderHairline, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
             ) {
                 Text(
-                    text = habit.category.uppercase(Locale.US),
+                    text = habit.category,
                     style = TesseraType.MicroAxis,
                     color = colors.textSecondary
                 )
@@ -379,18 +407,18 @@ private fun DetailHeaderBar(
 
             Row(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .background(colors.surfaceCard)
-                    .border(1.dp, colors.borderHairline, RoundedCornerShape(6.dp))
+                    .border(1.dp, colors.borderHairline, RoundedCornerShape(8.dp))
                     .clickable(onClick = onCopySlug)
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 Text(
                     text = "tessera://log?slug=${habit.slug}",
                     style = TesseraType.MicroAxis,
-                    color = palette.colorForLevel(4, colors.isDark)
+                    color = accent
                 )
                 Icon(
                     imageVector = Icons.Rounded.ContentCopy,
@@ -413,9 +441,9 @@ private fun MiniHeaderActionBtn(
     Box(
         modifier = Modifier
             .size(34.dp)
-            .clip(RoundedCornerShape(9.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(colors.surfaceCard)
-            .border(1.dp, colors.borderHairline, RoundedCornerShape(9.dp))
+            .border(1.dp, colors.borderHairline, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -436,23 +464,26 @@ private fun TelemetryBentoGrid(
     totalCompletions: Int,
     palette: HabitPaletteSpec
 ) {
+    val colors = TesseraTheme.colors
+    val accent = palette.colorForLevel(4, colors.isDark)
+
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             TelemetryMetricTile(
-                label = "CURRENT STREAK",
-                value = "$currentStreak DAYS",
+                label = "Current Streak",
+                value = "$currentStreak days",
                 subtitle = "Active sequence",
-                accentColor = palette.colorForLevel(4, TesseraTheme.colors.isDark),
+                accentColor = accent,
                 modifier = Modifier.weight(1f)
             )
             TelemetryMetricTile(
-                label = "BEST STREAK",
-                value = "$bestStreak DAYS",
-                subtitle = "All-time record",
-                accentColor = TesseraTheme.colors.textPrimary,
+                label = "Best Streak",
+                value = "$bestStreak days",
+                subtitle = "Personal record",
+                accentColor = colors.textPrimary,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -461,17 +492,17 @@ private fun TelemetryBentoGrid(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             TelemetryMetricTile(
-                label = "30D CONSISTENCY",
+                label = "30-Day Consistency",
                 value = "$consistency30d%",
                 subtitle = "Rolling 30-day rate",
-                accentColor = palette.colorForLevel(4, TesseraTheme.colors.isDark),
+                accentColor = accent,
                 modifier = Modifier.weight(1f)
             )
             TelemetryMetricTile(
-                label = "TOTAL VOLUME",
+                label = "Total Check-ins",
                 value = "$totalCompletions",
-                subtitle = "Lifetime check-ins",
-                accentColor = TesseraTheme.colors.textPrimary,
+                subtitle = "Lifetime completions",
+                accentColor = colors.textPrimary,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -489,7 +520,7 @@ private fun TelemetryMetricTile(
     val colors = TesseraTheme.colors
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         color = colors.surfaceCard,
         border = BorderStroke(1.dp, colors.borderHairline)
     ) {
@@ -497,7 +528,7 @@ private fun TelemetryMetricTile(
             Text(
                 text = label,
                 style = TesseraType.MicroAxis,
-                color = colors.textMuted
+                color = colors.textSecondary
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
@@ -505,11 +536,11 @@ private fun TelemetryMetricTile(
                 style = TesseraType.TelemetryHero,
                 color = accentColor
             )
-            Spacer(modifier = Modifier.height(3.dp))
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = subtitle,
                 style = TesseraType.CardSubtitle,
-                color = colors.textSecondary
+                color = colors.textMuted
             )
         }
     }
@@ -531,17 +562,18 @@ private fun SelectedDayInspectorCard(
     val colors = TesseraTheme.colors
     val dateFormatter = remember { DateTimeFormatter.ofPattern("EEE, MMM d, yyyy", Locale.US) }
     val safeTarget = targetPerDay.coerceAtLeast(1)
+    val accent = palette.colorForLevel(4, colors.isDark)
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         color = colors.surfaceCard,
         border = BorderStroke(1.dp, colors.borderSpecular)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -550,19 +582,18 @@ private fun SelectedDayInspectorCard(
             ) {
                 Column {
                     Text(
-                        text = "SELECTED DAY INSPECTOR",
+                        text = "Selected Date",
                         style = TesseraType.MicroAxis,
-                        color = palette.colorForLevel(4, colors.isDark)
+                        color = accent
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = selectedDate.format(dateFormatter).uppercase(Locale.US),
+                        text = selectedDate.format(dateFormatter),
                         style = TesseraType.TelemetryMedium,
                         color = colors.textPrimary
                     )
                 }
 
-                // Stepper Controls (-, count/target, +, Complete)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -582,9 +613,9 @@ private fun SelectedDayInspectorCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "$count / $safeTarget ${unitLabel.uppercase(Locale.US)}",
+                            text = "$count / $safeTarget $unitLabel",
                             style = TesseraType.TelemetryBadge,
-                            color = if (count >= safeTarget) palette.colorForLevel(4, colors.isDark) else colors.textPrimary
+                            color = if (count >= safeTarget) accent else colors.textPrimary
                         )
                     }
 
@@ -597,12 +628,11 @@ private fun SelectedDayInspectorCard(
                     Box(
                         modifier = Modifier
                             .size(34.dp)
-                            .clip(RoundedCornerShape(9.dp))
+                            .clip(RoundedCornerShape(10.dp))
                             .background(
-                                if (count >= safeTarget) palette.colorForLevel(4, colors.isDark)
-                                else colors.surfaceElevated
+                                if (count >= safeTarget) accent else colors.surfaceElevated
                             )
-                            .border(1.dp, palette.level3, RoundedCornerShape(9.dp))
+                            .border(1.dp, accent, RoundedCornerShape(10.dp))
                             .clickable {
                                 val next = if (count >= safeTarget) 0 else safeTarget
                                 onAdjustCount(next)
@@ -612,7 +642,7 @@ private fun SelectedDayInspectorCard(
                         Icon(
                             imageVector = Icons.Rounded.Check,
                             contentDescription = "Complete target",
-                            tint = if (count >= safeTarget) palette.onAccent else palette.colorForLevel(4, colors.isDark),
+                            tint = if (count >= safeTarget) palette.onAccentFor(colors.isDark) else accent,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -621,7 +651,6 @@ private fun SelectedDayInspectorCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Daily Field Note Input
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -632,7 +661,7 @@ private fun SelectedDayInspectorCard(
                     onValueChange = onNoteChange,
                     placeholder = {
                         Text(
-                            text = "Add field note for this date (e.g., weight, pages, session reflection)...",
+                            text = "Add a note for this day (pages, weights, reflection)...",
                             style = TesseraType.CardSubtitle,
                             color = colors.textMuted
                         )
@@ -640,7 +669,7 @@ private fun SelectedDayInspectorCard(
                     textStyle = TesseraType.CardSubtitle.copy(color = colors.textPrimary),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = palette.level3,
+                        focusedBorderColor = accent,
                         unfocusedBorderColor = colors.borderHairline,
                         focusedContainerColor = colors.surfaceElevated,
                         unfocusedContainerColor = colors.surfaceElevated
@@ -653,12 +682,12 @@ private fun SelectedDayInspectorCard(
                     Button(
                         onClick = onSaveNote,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = palette.colorForLevel(4, colors.isDark),
-                            contentColor = palette.onAccent
+                            containerColor = accent,
+                            contentColor = palette.onAccentFor(colors.isDark)
                         ),
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("SAVE", style = TesseraType.TelemetryBadge)
+                        Text("Save", style = TesseraType.TelemetryBadge)
                     }
                 }
             }
@@ -680,11 +709,11 @@ private fun MonthlyBackfillCalendarCard(
     val colors = TesseraTheme.colors
     val monthTitle = remember(displayedMonth) {
         val formatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US)
-        displayedMonth.format(formatter).uppercase(Locale.US)
+        displayedMonth.format(formatter)
     }
 
     val firstOfMonth = remember(displayedMonth) { displayedMonth.atDay(1) }
-    val leadingEmptyCells = remember(firstOfMonth) { firstOfMonth.dayOfWeek.value - 1 } // Monday = 0
+    val leadingEmptyCells = remember(firstOfMonth) { firstOfMonth.dayOfWeek.value - 1 }
     val daysInMonth = remember(displayedMonth) { displayedMonth.lengthOfMonth() }
     val totalCells = remember(leadingEmptyCells, daysInMonth) {
         ((leadingEmptyCells + daysInMonth + 6) / 7) * 7
@@ -692,14 +721,14 @@ private fun MonthlyBackfillCalendarCard(
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         color = colors.surfaceCard,
         border = BorderStroke(1.dp, colors.borderHairline)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -708,27 +737,26 @@ private fun MonthlyBackfillCalendarCard(
             ) {
                 Column {
                     Text(
-                        text = "MONTHLY BACK-FILL CALENDAR",
+                        text = "Monthly Calendar",
                         style = TesseraType.MicroAxis,
-                        color = colors.textMuted
+                        color = colors.textSecondary
                     )
                     Text(
                         text = monthTitle,
-                        style = TesseraType.TelemetryMedium,
+                        style = TesseraType.SectionTitle,
                         color = colors.textPrimary
                     )
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    MiniHeaderActionBtn(Icons.Rounded.ChevronLeft, "Previous Month", onPrevMonth)
-                    MiniHeaderActionBtn(Icons.Rounded.ChevronRight, "Next Month", onNextMonth)
+                    MiniHeaderActionBtn(Icons.Rounded.ChevronLeft, "Previous month", onPrevMonth)
+                    MiniHeaderActionBtn(Icons.Rounded.ChevronRight, "Next month", onNextMonth)
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Weekday Header Row
-            val dowHeaders = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
+            val dowHeaders = listOf("M", "T", "W", "T", "F", "S", "S")
             Row(modifier = Modifier.fillMaxWidth()) {
                 dowHeaders.forEach { dow ->
                     Text(
@@ -743,7 +771,6 @@ private fun MonthlyBackfillCalendarCard(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // 7-Column Calendar Rows
             val rows = totalCells / 7
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 for (rowIdx in 0 until rows) {
@@ -769,7 +796,7 @@ private fun MonthlyBackfillCalendarCard(
                                 }
                                 val textColor = when {
                                     isFuture -> colors.textMuted.copy(alpha = 0.4f)
-                                    level >= 3 -> palette.onAccent
+                                    level >= 3 -> palette.onAccentFor(colors.isDark)
                                     else -> colors.textPrimary
                                 }
 
@@ -777,12 +804,12 @@ private fun MonthlyBackfillCalendarCard(
                                     modifier = Modifier
                                         .weight(1f)
                                         .aspectRatio(1.25f)
-                                        .clip(RoundedCornerShape(7.dp))
+                                        .clip(RoundedCornerShape(8.dp))
                                         .background(bg)
                                         .border(
                                             width = if (isSelected) 1.5.dp else 1.dp,
                                             color = if (isSelected) colors.textPrimary else colors.borderHairline,
-                                            shape = RoundedCornerShape(7.dp)
+                                            shape = RoundedCornerShape(8.dp)
                                         )
                                         .clickable(enabled = !isFuture) { onDayClick(cellDate) },
                                     contentAlignment = Alignment.Center
@@ -795,90 +822,6 @@ private fun MonthlyBackfillCalendarCard(
                                 }
                             }
                         }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WeekdayDistributionCard(
-    weekdayDistribution: List<Int>,
-    palette: HabitPaletteSpec
-) {
-    val colors = TesseraTheme.colors
-    val maxCount = (weekdayDistribution.maxOrNull() ?: 1).coerceAtLeast(1)
-    val dayNames = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = colors.surfaceCard,
-        border = BorderStroke(1.dp, colors.borderHairline)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp)
-        ) {
-            Text(
-                text = "WEEKDAY RHYTHM DISTRIBUTION",
-                style = TesseraType.MicroAxis,
-                color = colors.textMuted
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(92.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.Bottom
-            ) {
-                for (i in 0..6) {
-                    val count = weekdayDistribution.getOrElse(i) { 0 }
-                    val fraction = (count.toFloat() / maxCount.toFloat()).coerceIn(0.08f, 1f)
-                    val level = when {
-                        count == 0 -> 0
-                        fraction >= 0.8f -> 4
-                        fraction >= 0.5f -> 3
-                        else -> 2
-                    }
-
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Bottom
-                    ) {
-                        Text(
-                            text = count.toString(),
-                            style = TesseraType.MicroAxis,
-                            color = colors.textSecondary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(0.68f)
-                                .height(54.dp)
-                                .clip(RoundedCornerShape(5.dp))
-                                .background(colors.surfaceRecessed),
-                            contentAlignment = Alignment.BottomCenter
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .fillMaxHeight(fraction)
-                                    .clip(RoundedCornerShape(5.dp))
-                                    .background(palette.colorForLevel(level, colors.isDark))
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(5.dp))
-                        Text(
-                            text = dayNames[i],
-                            style = TesseraType.MicroAxis,
-                            color = colors.textMuted
-                        )
                     }
                 }
             }

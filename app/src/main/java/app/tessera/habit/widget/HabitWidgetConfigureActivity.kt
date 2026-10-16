@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
@@ -70,11 +71,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
-import java.util.Locale
 
 /**
  * Configuration Activity launched when placing or reconfiguring a Tessera Home Screen Widget
  * on the Samsung Galaxy S26 Ultra (One UI 8).
+ *
+ * Styled in the Dieter Rams (Braun) / Things 3 / Kinfolk Warm Matte Carbon & Warm Limestone aesthetic.
  */
 class HabitWidgetConfigureActivity : ComponentActivity() {
 
@@ -201,30 +203,30 @@ private fun WidgetConfigureScreen(
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
-            // Top Bar
+            // Editorial Top Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         text = if (isCompactWidget) {
-                            "ONE UI · 2×2 COMPACT WIDGET"
+                            "ONE UI · 2×2 COMPACT MOSAIC"
                         } else {
-                            "ONE UI · 4×2 MATRIX WIDGET"
+                            "ONE UI · 4×2 ARCHITECTURAL MOSAIC"
                         },
                         style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
                         color = activePalette.level4,
-                        letterSpacing = 1.sp
+                        letterSpacing = 1.1.sp
                     )
                     Text(
                         text = "Configure Ritual Widget",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontFamily = FontFamily.Serif,
+                        fontWeight = FontWeight.Normal,
                         color = colors.textPrimary
                     )
                 }
@@ -241,23 +243,23 @@ private fun WidgetConfigureScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
                 // Live S26 Ultra Home Screen Preview Card
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "LIVE HOME SCREEN PREVIEW",
+                            text = "HOME SCREEN PREVIEW",
                             style = MaterialTheme.typography.labelSmall,
-                            fontFamily = FontFamily.Monospace,
-                            color = colors.textSecondary
+                            color = colors.textSecondary,
+                            letterSpacing = 0.8.sp
                         )
 
-                        val previewBg = if (isDarkWidgetTheme) Color(0xFF0A0C10) else Color(0xFFFFFFFF)
-                        val previewBorder = if (isDarkWidgetTheme) Color(0xFF1F242D) else Color(0xFFE2DFD7)
-                        val previewTitleColor = if (isDarkWidgetTheme) Color(0xFFF3F4F6) else Color(0xFF111317)
-                        val previewSubColor = if (isDarkWidgetTheme) Color(0xFF8A919E) else Color(0xFF686D76)
+                        val previewBg = if (isDarkWidgetTheme) Color(0xFF161514) else Color(0xFFFCFBF9)
+                        val previewBorder = if (isDarkWidgetTheme) Color(0xFF262421) else Color(0xFFE6E2DA)
+                        val previewTitleColor = if (isDarkWidgetTheme) Color(0xFFF5F3EF) else Color(0xFF1C1B19)
+                        val previewSubColor = if (isDarkWidgetTheme) Color(0xFF9A948A) else Color(0xFF6E6960)
 
                         val previewBitmap = remember(selectedHabit, isDarkWidgetTheme, isCompactWidget) {
                             if (isCompactWidget) {
@@ -280,10 +282,10 @@ private fun WidgetConfigureScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(22.dp))
+                                .clip(RoundedCornerShape(24.dp))
                                 .background(previewBg)
-                                .border(1.dp, previewBorder, RoundedCornerShape(22.dp))
-                                .padding(14.dp)
+                                .border(1.dp, previewBorder, RoundedCornerShape(24.dp))
+                                .padding(16.dp)
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Row(
@@ -296,7 +298,7 @@ private fun WidgetConfigureScreen(
                                             Text(
                                                 text = selectedHabit?.habit?.title ?: "Select a Ritual",
                                                 color = previewTitleColor,
-                                                fontWeight = FontWeight.Bold,
+                                                fontWeight = FontWeight.SemiBold,
                                                 fontSize = 15.sp,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
@@ -304,28 +306,32 @@ private fun WidgetConfigureScreen(
                                             Spacer(modifier = Modifier.width(8.dp))
                                             val streak = selectedHabit?.computeStats()?.currentStreak ?: 0
                                             Text(
-                                                text = "${streak}D STREAK",
+                                                text = if (isCompactWidget) {
+                                                    "${streak}d streak"
+                                                } else {
+                                                    "$streak day streak"
+                                                },
                                                 color = activePalette.level4,
-                                                fontFamily = FontFamily.Monospace,
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold
+                                                fontFamily = FontFamily.Serif,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold
                                             )
                                         }
                                         val todayCount = selectedHabit?.countForDate(LocalDate.now()) ?: 0
                                         val target = selectedHabit?.habit?.targetPerDay ?: 1
                                         val slug = selectedHabit?.habit?.slug ?: "ritual"
                                         Text(
-                                            text = "#$slug · $todayCount/$target TODAY",
+                                            text = "$slug · $todayCount/$target today",
                                             color = previewSubColor,
-                                            fontFamily = FontFamily.Monospace,
-                                            fontSize = 10.sp
+                                            fontSize = 11.sp
                                         )
                                     }
 
+                                    // Tactile 32dp Circular Check-In Button
                                     Box(
                                         modifier = Modifier
-                                            .size(34.dp)
-                                            .clip(RoundedCornerShape(10.dp))
+                                            .size(32.dp)
+                                            .clip(CircleShape)
                                             .background(activePalette.level4),
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -333,7 +339,7 @@ private fun WidgetConfigureScreen(
                                             imageVector = Icons.Rounded.Check,
                                             contentDescription = null,
                                             tint = activePalette.onAccent,
-                                            modifier = Modifier.size(18.dp)
+                                            modifier = Modifier.size(16.dp)
                                         )
                                     }
                                 }
@@ -355,26 +361,26 @@ private fun WidgetConfigureScreen(
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "WIDGET SURFACE THEME",
+                            text = "WIDGET SURFACE FINISH",
                             style = MaterialTheme.typography.labelSmall,
-                            fontFamily = FontFamily.Monospace,
-                            color = colors.textSecondary
+                            color = colors.textSecondary,
+                            letterSpacing = 0.8.sp
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             OptionChipCard(
-                                title = "Obsidian Dark",
-                                subtitle = "#0A0C10 AMOLED",
+                                title = "Warm Matte Carbon",
+                                subtitle = "#161514 Braun Dark",
                                 selected = isDarkWidgetTheme,
                                 accentColor = activePalette.level4,
                                 modifier = Modifier.weight(1f),
                                 onClick = { onToggleWidgetTheme(true) }
                             )
                             OptionChipCard(
-                                title = "Alabaster Light",
-                                subtitle = "#FFFFFF Gallery",
+                                title = "Warm Limestone",
+                                subtitle = "#FCFBF9 Editorial Paper",
                                 selected = !isDarkWidgetTheme,
                                 accentColor = activePalette.level4,
                                 modifier = Modifier.weight(1f),
@@ -390,8 +396,8 @@ private fun WidgetConfigureScreen(
                         Text(
                             text = "1-TAP CHECK-IN BEHAVIOR",
                             style = MaterialTheme.typography.labelSmall,
-                            fontFamily = FontFamily.Monospace,
-                            color = colors.textSecondary
+                            color = colors.textSecondary,
+                            letterSpacing = 0.8.sp
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -422,8 +428,8 @@ private fun WidgetConfigureScreen(
                     Text(
                         text = "SELECT RITUAL TO BIND (${habits.size})",
                         style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
-                        color = colors.textSecondary
+                        color = colors.textSecondary,
+                        letterSpacing = 0.8.sp
                     )
                 }
 
@@ -436,12 +442,12 @@ private fun WidgetConfigureScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(RoundedCornerShape(16.dp))
                             .background(if (isSelected) colors.surfaceElevated else colors.surfaceCard)
                             .border(
                                 width = if (isSelected) 1.5.dp else 1.dp,
                                 color = if (isSelected) palette.level4 else colors.borderHairline,
-                                shape = RoundedCornerShape(14.dp)
+                                shape = RoundedCornerShape(16.dp)
                             )
                             .clickable { onSelectHabit(item) }
                             .padding(14.dp),
@@ -472,10 +478,10 @@ private fun WidgetConfigureScreen(
                                 color = colors.textPrimary
                             )
                             Text(
-                                text = "#${item.habit.slug} · ${stats.currentStreak}D STREAK · ${item.habit.targetPerDay}x/day",
+                                text = "${stats.currentStreak} day streak · ${item.habit.targetPerDay}× daily",
                                 style = MaterialTheme.typography.bodySmall,
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Serif,
+                                fontSize = 12.sp,
                                 color = colors.textSecondary
                             )
                         }
@@ -483,8 +489,8 @@ private fun WidgetConfigureScreen(
                         if (isSelected) {
                             Box(
                                 modifier = Modifier
-                                    .size(26.dp)
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .size(28.dp)
+                                    .clip(CircleShape)
                                     .background(palette.level4),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -505,7 +511,7 @@ private fun WidgetConfigureScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(colors.surfaceCard)
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
             ) {
                 Button(
                     onClick = onConfirm,
@@ -520,10 +526,9 @@ private fun WidgetConfigureScreen(
                     )
                 ) {
                     Text(
-                        text = "DEPLOY WIDGET TO HOME SCREEN",
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.8.sp
+                        text = "Place Widget on Home Screen",
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.3.sp
                     )
                 }
             }
@@ -543,15 +548,15 @@ private fun OptionChipCard(
     val colors = TesseraTheme.colors
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(14.dp))
             .background(if (selected) colors.surfaceElevated else colors.surfaceCard)
             .border(
                 width = if (selected) 1.5.dp else 1.dp,
                 color = if (selected) accentColor else colors.borderHairline,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(14.dp)
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .padding(horizontal = 13.dp, vertical = 11.dp)
     ) {
         Text(
             text = title,
@@ -562,7 +567,6 @@ private fun OptionChipCard(
         Text(
             text = subtitle,
             style = MaterialTheme.typography.labelSmall,
-            fontFamily = FontFamily.Monospace,
             color = colors.textMuted,
             fontSize = 10.sp
         )

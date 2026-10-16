@@ -7,36 +7,61 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * Swiss Neo-Brutalist & Precision Instrumentation Typography System.
- * Uses clean geometric Sans-Serif for editorial titles and Tabular Monospace
- * for all telemetry numerals, streaks, percentages, axis ticks, and API slugs.
+ * Editorial Serif & Tactile Sans-Serif Typography System.
+ * Uses sculptural Serif for the centered date header, large streak numerals,
+ * and section titles, paired with clean humanist Sans-Serif for habit titles,
+ * subtitles, and controls.
  */
 object TesseraType {
+    val EditorialDateHeader = TextStyle(
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.Normal,
+        fontSize = 30.sp,
+        lineHeight = 36.sp,
+        letterSpacing = (-0.5).sp
+    )
+
+    val StreakNumber = TextStyle(
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.Normal,
+        fontSize = 34.sp,
+        lineHeight = 38.sp,
+        letterSpacing = (-0.5).sp
+    )
+
     val DisplayMomentum = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 28.sp,
-        lineHeight = 32.sp,
-        letterSpacing = (-0.8).sp
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.Normal,
+        fontSize = 30.sp,
+        lineHeight = 36.sp,
+        letterSpacing = (-0.5).sp
     )
 
     val SectionTitle = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 20.sp,
-        lineHeight = 25.sp,
-        letterSpacing = (-0.4).sp
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.Normal,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
+        letterSpacing = (-0.3).sp
     )
 
     val CardTitle = TextStyle(
         fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 16.sp,
-        lineHeight = 20.sp,
-        letterSpacing = (-0.2).sp
+        fontWeight = FontWeight.Medium,
+        fontSize = 17.sp,
+        lineHeight = 22.sp,
+        letterSpacing = (-0.1).sp
     )
 
     val CardSubtitle = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Normal,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.sp
+    )
+
+    val StreakLabel = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
@@ -45,35 +70,35 @@ object TesseraType {
     )
 
     val TelemetryHero = TextStyle(
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Bold,
-        fontSize = 26.sp,
-        lineHeight = 30.sp,
-        letterSpacing = (-0.5).sp
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.Normal,
+        fontSize = 28.sp,
+        lineHeight = 32.sp,
+        letterSpacing = (-0.4).sp
     )
 
     val TelemetryMedium = TextStyle(
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 18.sp,
-        letterSpacing = 0.2.sp
+        letterSpacing = 0.sp
     )
 
     val TelemetryBadge = TextStyle(
-        fontFamily = FontFamily.Monospace,
+        fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 14.sp,
-        letterSpacing = 0.6.sp
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.1.sp
     )
 
     val MicroAxis = TextStyle(
-        fontFamily = FontFamily.Monospace,
+        fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Medium,
-        fontSize = 9.sp,
-        lineHeight = 11.sp,
-        letterSpacing = 0.3.sp
+        fontSize = 11.sp,
+        lineHeight = 14.sp,
+        letterSpacing = 0.1.sp
     )
 
     val CodeSnippet = TextStyle(
@@ -86,14 +111,14 @@ object TesseraType {
 }
 
 val TesseraTypography = Typography(
-    displayLarge = TesseraType.DisplayMomentum,
+    displayLarge = TesseraType.EditorialDateHeader,
     headlineMedium = TesseraType.SectionTitle,
     titleLarge = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 18.sp,
-        lineHeight = 24.sp,
-        letterSpacing = (-0.3).sp
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.Normal,
+        fontSize = 20.sp,
+        lineHeight = 26.sp,
+        letterSpacing = (-0.2).sp
     ),
     titleMedium = TesseraType.CardTitle,
     titleSmall = TextStyle(

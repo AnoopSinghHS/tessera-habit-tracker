@@ -63,9 +63,9 @@ private enum class TesseraTab(
     val label: String,
     val icon: ImageVector
 ) {
-    RITUALS("RITUALS", Icons.Rounded.GridView),
-    TELEMETRY("TELEMETRY", Icons.Rounded.AutoGraph),
-    BRIDGE("BRIDGE & VAULT", Icons.Rounded.Terminal)
+    TODAY("Today", Icons.Rounded.GridView),
+    INSIGHTS("Insights", Icons.Rounded.AutoGraph),
+    SETTINGS("Settings & API", Icons.Rounded.Terminal)
 }
 
 class MainActivity : ComponentActivity() {
@@ -144,7 +144,7 @@ private fun TesseraRootApp(viewModel: TesseraViewModel) {
                 currentTab = currentTab,
                 onSelectTab = { tab ->
                     currentTab = tab
-                    if (tab == TesseraTab.BRIDGE) {
+                    if (tab == TesseraTab.SETTINGS) {
                         viewModel.refreshApiTelemetrySummary()
                     }
                 }
@@ -159,7 +159,7 @@ private fun TesseraRootApp(viewModel: TesseraViewModel) {
         ) {
             Crossfade(targetState = currentTab, label = "tabCrossfade") { tab ->
                 when (tab) {
-                    TesseraTab.RITUALS -> {
+                    TesseraTab.TODAY -> {
                         DashboardScreen(
                             uiState = uiState,
                             onCheckInHabit = { habitId -> viewModel.smartCheckIn(habitId) },
@@ -170,20 +170,20 @@ private fun TesseraRootApp(viewModel: TesseraViewModel) {
                             onToggleTheme = { viewModel.cycleThemeMode() },
                             onOpenApiBridge = {
                                 viewModel.refreshApiTelemetrySummary()
-                                currentTab = TesseraTab.BRIDGE
+                                currentTab = TesseraTab.SETTINGS
                             },
                             onResetDemoData = { viewModel.resetDemoData() }
                         )
                     }
 
-                    TesseraTab.TELEMETRY -> {
+                    TesseraTab.INSIGHTS -> {
                         AnalyticsScreen(
                             uiState = uiState,
                             onOpenHabitDetail = { habitId -> viewModel.openHabitDetail(habitId) }
                         )
                     }
 
-                    TesseraTab.BRIDGE -> {
+                    TesseraTab.SETTINGS -> {
                         ApiAndSettingsScreen(
                             uiState = uiState,
                             onFireLiveBroadcast = { slug, mode, delta, count, note ->

@@ -5,30 +5,30 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 // ============================================================================
-// 2.1 True AMOLED Obsidian Dark Theme (Default for Galaxy S26 Ultra)
+// Warm Matte Carbon Dark Mode (Tactile Architectural Charcoal)
 // ============================================================================
-val SurfaceAbyss = Color(0xFF07080B)
-val SurfaceCard = Color(0xFF101217)
-val SurfaceElevated = Color(0xFF161920)
-val SurfaceRecessed = Color(0xFF181B22)
-val BorderHairline = Color(0xFF1F242D)
-val BorderSpecular = Color(0xFF2C3340)
-val TextPrimary = Color(0xFFF3F4F6)
-val TextSecondary = Color(0xFF8A919E)
-val TextMuted = Color(0xFF525866)
+val SurfaceAbyss = Color(0xFF121210)
+val SurfaceCard = Color(0xFF1A1917)
+val SurfaceElevated = Color(0xFF22211E)
+val SurfaceRecessed = Color(0xFF262421)
+val BorderHairline = Color(0xFF262421)
+val BorderSpecular = Color(0xFF36332E)
+val TextPrimary = Color(0xFFF2EFE9)
+val TextSecondary = Color(0xFF8E8A82)
+val TextMuted = Color(0xFF635F58)
 
 // ============================================================================
-// 2.2 Warm Alabaster Light Theme
+// Warm Limestone & Paper Light Mode (Default Human-Crafted Surface)
 // ============================================================================
-val SurfaceAbyssLight = Color(0xFFF6F5F2)
-val SurfaceCardLight = Color(0xFFFFFFFF)
-val SurfaceElevatedLight = Color(0xFFEAE8E1)
-val SurfaceRecessedLight = Color(0xFFEDEBE4)
-val BorderHairlineLight = Color(0xFFE2DFD7)
-val BorderSpecularLight = Color(0xFFC8C4B8)
-val TextPrimaryLight = Color(0xFF111317)
-val TextSecondaryLight = Color(0xFF686D76)
-val TextMutedLight = Color(0xFF9CA3AF)
+val SurfaceAbyssLight = Color(0xFFF5F3EF)
+val SurfaceCardLight = Color(0xFFFCFBF9)
+val SurfaceElevatedLight = Color(0xFFEDEAE3)
+val SurfaceRecessedLight = Color(0xFFEAE6DF)
+val BorderHairlineLight = Color(0xFFE8E4DC)
+val BorderSpecularLight = Color(0xFFD8D2C7)
+val TextPrimaryLight = Color(0xFF1C1B19)
+val TextSecondaryLight = Color(0xFF78746D)
+val TextMutedLight = Color(0xFFA09B92)
 
 // ============================================================================
 // Semantic Color System
@@ -45,9 +45,9 @@ data class TesseraColorTokens(
     val textPrimary: Color,
     val textSecondary: Color,
     val textMuted: Color,
-    val statusSuccess: Color = Color(0xFF34D399),
-    val statusWarning: Color = Color(0xFFF59E0B),
-    val statusDanger: Color = Color(0xFFF43F5E)
+    val statusSuccess: Color = Color(0xFF2D5A43),
+    val statusWarning: Color = Color(0xFFC27D38),
+    val statusDanger: Color = Color(0xFFB85435)
 )
 
 val ObsidianDarkColorTokens = TesseraColorTokens(
@@ -60,7 +60,10 @@ val ObsidianDarkColorTokens = TesseraColorTokens(
     borderSpecular = BorderSpecular,
     textPrimary = TextPrimary,
     textSecondary = TextSecondary,
-    textMuted = TextMuted
+    textMuted = TextMuted,
+    statusSuccess = Color(0xFF488B69),
+    statusWarning = Color(0xFFDFA055),
+    statusDanger = Color(0xFFD46A48)
 )
 
 val AlabasterLightColorTokens = TesseraColorTokens(
@@ -73,7 +76,10 @@ val AlabasterLightColorTokens = TesseraColorTokens(
     borderSpecular = BorderSpecularLight,
     textPrimary = TextPrimaryLight,
     textSecondary = TextSecondaryLight,
-    textMuted = TextMutedLight
+    textMuted = TextMutedLight,
+    statusSuccess = Color(0xFF2D5A43),
+    statusWarning = Color(0xFFC27D38),
+    statusDanger = Color(0xFFB85435)
 )
 
-val LocalTesseraColors = staticCompositionLocalOf { ObsidianDarkColorTokens }
+val LocalTesseraColors = staticCompositionLocalOf { AlabasterLightColorTokens }

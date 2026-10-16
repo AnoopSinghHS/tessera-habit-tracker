@@ -18,11 +18,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -38,18 +38,26 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.tessera.habit.data.model.HabitWithLogs
 import app.tessera.habit.ui.theme.HabitPalette
 import app.tessera.habit.ui.theme.HabitPaletteSpec
 import app.tessera.habit.ui.theme.TesseraTheme
 import app.tessera.habit.ui.theme.TesseraType
 import java.time.LocalDate
-import kotlin.math.roundToInt
 
 /**
- * Full-width Architectural Dual-Zone Habit Card.
- * Top Zone: Tinted icon squircle, title, monospace streak pill, quantitative counter, and kinetic check trigger.
- * Bottom Zone: Precision-aligned GitHub contribution matrix + micro telemetry strip.
+ * Signature Asymmetric Split Habit Card (matching the Stitch / Fable concept).
+ *
+ * Top Row:
+ * - Left: Minimalist vector icon (22.dp, ink-tinted, no box) + 12.dp spacer + Habit Title (17.sp Medium).
+ * - Right: Tactile 34.dp circular check button filled with pigment accent when completed.
+ *
+ * Bottom Row (Asymmetric Split):
+ * - Left Column (width = 88.dp, aligned bottom-start): Large 34.sp Editorial Serif streak number
+ *   in pigment accent + "day streak" label below.
+ * - Right Column (weight(1f)): 7-row contribution heatmap grid showing the last ~15 weeks of softly
+ *   rounded (3.dp radius) squares.
  */
 @Composable
 fun HabitCard(
@@ -71,111 +79,74 @@ fun HabitCard(
 
     val todayCount = habitWithLogs.countForDate(today)
     val target = habit.targetPerDay.coerceAtLeast(1)
-    val isCompletedToday = todayCount >= target
-
-    val borderColor by animateColorAsState(
-        targetValue = if (isCompletedToday) {
-            palette.level3.copy(alpha = 0.55f)
-        } else {
-            colors.borderHairline
-        },
-        label = "cardBorderColor"
-    )
+    val accentColor = palette.colorForLevel(4, colors.isDark)
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .clickable(onClick = onCardClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         color = colors.surfaceCard,
-        border = BorderStroke(1.dp, borderColor)
+        border = BorderStroke(1.dp, colors.borderHairline)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(18.dp)
         ) {
-            // Top Metadata + Kinetic Trigger Row
+            // Top Row: Minimalist Icon + Title + Circular Check Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Tinted Icon Squircle
-                Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(palette.colorForLevel(1, colors.isDark))
-                        .border(
-                            width = 1.dp,
-                            color = palette.level3.copy(alpha = 0.35f),
-                            shape = RoundedCornerShape(10.dp)
-                        ),
-                    contentAlignment = Alignment.Center
+                Icon(
+                    imageVector = HabitIcons.resolve(habit.iconKey),
+                    contentDescription = habit.title,
+                    tint = colors.textPrimary,
+                    modifier = Modifier.size(22.dp)
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = HabitIcons.resolve(habit.iconKey),
-                        contentDescription = habit.title,
-                        tint = palette.colorForLevel(4, colors.isDark),
-                        modifier = Modifier.size(20.dp)
+                    Text(
+                        text = habit.title,
+                        style = TesseraType.CardTitle,
+                        color = colors.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
+
+                    if (target > 1) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(colors.surfaceRecessed)
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "$todayCount/$target",
+                                style = TesseraType.MicroAxis,
+                                color = if (todayCount >= target) accentColor else colors.textSecondary
+                            )
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // Title, Streak Badge & Subtitle
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = habit.title,
-                            style = TesseraType.CardTitle,
-                            color = colors.textPrimary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-
-                        // Streak Monospace Pill
-                        StreakPillBadge(
-                            streakDays = stats.currentStreak,
-                            palette = palette,
-                            isActive = stats.currentStreak > 0
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(3.dp))
-
-                    val statusSubtitle = buildString {
-                        if (target > 1) {
-                            append("$todayCount/$target ${habit.unitLabel} today")
-                        } else if (isCompletedToday) {
-                            append("Completed today")
-                        } else {
-                            append(habit.description.ifBlank { "Daily ritual" })
-                        }
-                        append(" · #${habit.slug}")
-                    }
-
-                    Text(
-                        text = statusSubtitle,
-                        style = TesseraType.CardSubtitle,
-                        color = if (isCompletedToday) palette.colorForLevel(4, colors.isDark) else colors.textSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(10.dp))
-
-                // Kinetic Check-In Trigger Button
                 KineticCheckInButton(
                     todayCount = todayCount,
                     targetPerDay = target,
                     palette = palette,
+                    sizeDp = 34,
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onCheckInClick()
@@ -183,52 +154,45 @@ fun HabitCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // GitHub Contribution Heatmap Matrix
-            GithubHeatmapGrid(
-                countsByEpochDay = countsByEpochDay,
-                targetPerDay = target,
-                palette = palette,
-                weeks = 28,
-                cellSize = 11.dp,
-                cellGap = 3.dp,
-                cornerRadius = 2.5.dp,
-                showWeekdayLabels = true,
-                showMonthLabels = false,
-                scrollable = true,
-                today = today,
-                onDateClick = onDateCellClick ?: { onCardClick() }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Micro Telemetry Footer Strip
+            // Bottom Row: Asymmetric Split Layout (Sculptural Serif Streak Left + Heatmap Matrix Right)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.width(88.dp),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.Bottom
                 ) {
                     Text(
-                        text = "${habit.category.uppercase()} · ${stats.weeklyCompletedDays}/${habit.weeklyGoalDays} WK",
-                        style = TesseraType.MicroAxis,
-                        color = colors.textMuted
+                        text = stats.currentStreak.toString(),
+                        style = TesseraType.StreakNumber,
+                        color = accentColor
                     )
                     Text(
-                        text = "30D ${(stats.completionRate30Days * 100).roundToInt()}%",
-                        style = TesseraType.MicroAxis,
+                        text = "day streak",
+                        style = TesseraType.StreakLabel,
                         color = colors.textSecondary
                     )
                 }
 
-                Text(
-                    text = "${stats.totalCompletions} TOTAL",
-                    style = TesseraType.MicroAxis,
-                    color = colors.textMuted
+                GithubHeatmapGrid(
+                    countsByEpochDay = countsByEpochDay,
+                    targetPerDay = target,
+                    palette = palette,
+                    modifier = Modifier.weight(1f),
+                    weeks = 15,
+                    cellSize = 10.5.dp,
+                    cellGap = 2.5.dp,
+                    cornerRadius = 3.dp,
+                    showWeekdayLabels = false,
+                    showMonthLabels = false,
+                    scrollable = false,
+                    today = today,
+                    onDateClick = onDateCellClick ?: { onCardClick() }
                 )
             }
         }
@@ -236,8 +200,7 @@ fun HabitCard(
 }
 
 /**
- * Compact 2-Column Bento Card for Dense Matrix Dashboard View.
- * Renders a 10-week × 7-day mini GitHub grid inside a tight architectural tile.
+ * Compact 2-Column Bento Card for Dense Dashboard View.
  */
 @Composable
 fun HabitCompactBentoCard(
@@ -258,53 +221,39 @@ fun HabitCompactBentoCard(
 
     val todayCount = habitWithLogs.countForDate(today)
     val target = habit.targetPerDay.coerceAtLeast(1)
-    val isCompletedToday = todayCount >= target
-
-    val borderColor = if (isCompletedToday) {
-        palette.level3.copy(alpha = 0.55f)
-    } else {
-        colors.borderHairline
-    }
+    val accentColor = palette.colorForLevel(4, colors.isDark)
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onCardClick),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         color = colors.surfaceCard,
-        border = BorderStroke(1.dp, borderColor)
+        border = BorderStroke(1.dp, colors.borderHairline)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
+                .padding(14.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(palette.colorForLevel(1, colors.isDark)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = HabitIcons.resolve(habit.iconKey),
-                        contentDescription = habit.title,
-                        tint = palette.colorForLevel(4, colors.isDark),
-                        modifier = Modifier.size(17.dp)
-                    )
-                }
+                Icon(
+                    imageVector = HabitIcons.resolve(habit.iconKey),
+                    contentDescription = habit.title,
+                    tint = colors.textPrimary,
+                    modifier = Modifier.size(20.dp)
+                )
 
                 KineticCheckInButton(
                     todayCount = todayCount,
                     targetPerDay = target,
                     palette = palette,
-                    sizeDp = 34,
+                    sizeDp = 30,
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onCheckInClick()
@@ -312,36 +261,38 @@ fun HabitCompactBentoCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
                 text = habit.title,
-                style = TesseraType.CardTitle.copy(fontSize = TesseraType.CardTitle.fontSize * 0.92f),
+                style = TesseraType.CardTitle.copy(fontSize = 15.sp),
                 color = colors.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Bottom
             ) {
                 Text(
-                    text = "${stats.currentStreak}D STREAK",
-                    style = TesseraType.MicroAxis,
-                    color = if (stats.currentStreak > 0) palette.colorForLevel(4, colors.isDark) else colors.textMuted
+                    text = "${stats.currentStreak} day streak",
+                    style = TesseraType.StreakLabel,
+                    color = accentColor
                 )
-                Text(
-                    text = if (target > 1) "$todayCount/$target" else if (isCompletedToday) "DONE" else "0/1",
-                    style = TesseraType.MicroAxis,
-                    color = colors.textSecondary
-                )
+                if (target > 1) {
+                    Text(
+                        text = "$todayCount/$target",
+                        style = TesseraType.MicroAxis,
+                        color = colors.textSecondary
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             GithubHeatmapGrid(
                 countsByEpochDay = countsByEpochDay,
@@ -350,7 +301,7 @@ fun HabitCompactBentoCard(
                 weeks = 11,
                 cellSize = 9.dp,
                 cellGap = 2.5.dp,
-                cornerRadius = 2.dp,
+                cornerRadius = 2.5.dp,
                 showWeekdayLabels = false,
                 showMonthLabels = false,
                 scrollable = false,
@@ -360,6 +311,9 @@ fun HabitCompactBentoCard(
     }
 }
 
+/**
+ * Clean Editorial Streak Pill Badge (zero emojis or fire icons).
+ */
 @Composable
 fun StreakPillBadge(
     streakDays: Int,
@@ -368,35 +322,34 @@ fun StreakPillBadge(
     modifier: Modifier = Modifier
 ) {
     val colors = TesseraTheme.colors
-    Row(
+    val accent = palette.colorForLevel(4, colors.isDark)
+    Box(
         modifier = modifier
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(
                 if (isActive) palette.colorForLevel(1, colors.isDark) else colors.surfaceElevated
             )
             .border(
                 width = 1.dp,
-                color = if (isActive) palette.level3.copy(alpha = 0.4f) else colors.borderHairline,
-                shape = RoundedCornerShape(6.dp)
+                color = if (isActive) accent.copy(alpha = 0.3f) else colors.borderHairline,
+                shape = RoundedCornerShape(8.dp)
             )
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(3.dp)
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = Icons.Rounded.LocalFireDepartment,
-            contentDescription = null,
-            tint = if (isActive) palette.colorForLevel(4, colors.isDark) else colors.textMuted,
-            modifier = Modifier.size(11.dp)
-        )
         Text(
-            text = "${streakDays}D",
-            style = TesseraType.TelemetryBadge,
-            color = if (isActive) palette.colorForLevel(4, colors.isDark) else colors.textMuted
+            text = "$streakDays day streak",
+            style = TesseraType.MicroAxis,
+            color = if (isActive) accent else colors.textMuted
         )
     }
 }
 
+/**
+ * Tactile 34.dp Circular Check Button.
+ * Filled with the habit's organic pigment color and crisp ivory checkmark when completed;
+ * subtle warm recessed circle when uncompleted.
+ */
 @Composable
 fun KineticCheckInButton(
     todayCount: Int,
@@ -404,15 +357,16 @@ fun KineticCheckInButton(
     palette: HabitPaletteSpec,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    sizeDp: Int = 40
+    sizeDp: Int = 34
 ) {
     val colors = TesseraTheme.colors
     val safeTarget = targetPerDay.coerceAtLeast(1)
     val isComplete = todayCount >= safeTarget
     val isPartial = todayCount in 1 until safeTarget
+    val accentColor = palette.colorForLevel(4, colors.isDark)
 
     val scale by animateFloatAsState(
-        targetValue = if (isComplete) 1.0f else 0.97f,
+        targetValue = if (isComplete) 1.0f else 0.96f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium
@@ -422,26 +376,26 @@ fun KineticCheckInButton(
 
     val bgColor by animateColorAsState(
         targetValue = when {
-            isComplete -> palette.colorForLevel(4, colors.isDark)
+            isComplete -> accentColor
             isPartial -> palette.colorForLevel(1, colors.isDark)
-            else -> colors.surfaceElevated
+            else -> colors.surfaceRecessed
         },
         label = "checkBg"
     )
 
     val strokeColor = when {
-        isComplete -> palette.colorForLevel(4, colors.isDark)
-        isPartial -> palette.level3
-        else -> colors.borderHairline
+        isComplete -> accentColor
+        isPartial -> palette.colorForLevel(3, colors.isDark)
+        else -> colors.borderSpecular
     }
 
     Box(
         modifier = modifier
             .size(sizeDp.dp)
             .scale(scale)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(CircleShape)
             .background(bgColor)
-            .border(1.dp, strokeColor, RoundedCornerShape(12.dp))
+            .border(1.dp, strokeColor, CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -450,30 +404,31 @@ fun KineticCheckInButton(
                 Icon(
                     imageVector = Icons.Rounded.Check,
                     contentDescription = "Completed",
-                    tint = palette.onAccent,
-                    modifier = Modifier.size((sizeDp * 0.52f).dp)
+                    tint = palette.onAccentFor(colors.isDark),
+                    modifier = Modifier.size(18.dp)
                 )
             }
             isPartial -> {
                 CircularProgressIndicator(
                     progress = { (todayCount.toFloat() / safeTarget.toFloat()).coerceIn(0f, 1f) },
-                    modifier = Modifier.size((sizeDp - 8).dp),
-                    color = palette.colorForLevel(4, colors.isDark),
+                    modifier = Modifier.size((sizeDp - 6).dp),
+                    color = accentColor,
                     trackColor = colors.borderHairline,
                     strokeWidth = 2.dp
                 )
-                Text(
-                    text = "$todayCount/$safeTarget",
-                    style = TesseraType.MicroAxis,
-                    color = palette.colorForLevel(4, colors.isDark)
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = "Increment",
+                    tint = accentColor,
+                    modifier = Modifier.size(14.dp)
                 )
             }
             else -> {
                 Icon(
                     imageVector = if (safeTarget > 1) Icons.Rounded.Add else Icons.Rounded.Check,
                     contentDescription = "Check in",
-                    tint = colors.textSecondary,
-                    modifier = Modifier.size((sizeDp * 0.48f).dp)
+                    tint = colors.textMuted,
+                    modifier = Modifier.size(16.dp)
                 )
             }
         }

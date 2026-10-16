@@ -6,52 +6,52 @@
     android:viewportHeight="108">
     <!-- Outer subtle container frame inside safe zone (26..82) -->
     <path
-        android:fillColor="#12151C"
-        android:strokeColor="#262C3A"
+        android:fillColor="#1E1C1A"
+        android:strokeColor="#33302B"
         android:strokeWidth="1.2"
-        android:pathData="M30,26L78,26A4,4 0,0 1,82 30L82,78A4,4 0,0 1,78 82L30,82A4,4 0,0 1,26 78L26,30A4,4 0,0 1,30 26z" />
+        android:pathData="M30,26L78,26A5,5 0,0 1,83 31L83,77A5,5 0,0 1,78 82L30,82A5,5 0,0 1,25 77L25,31A5,5 0,0 1,30 26z" />
 
-    <!-- Row 1: 3x3 Tessera Mosaic Tiles (12x12 tiles, 4dp gap) -->
-    <!-- Tile (0,0): Level 1 Deep Emerald -->
+    <!-- Row 1: Asymmetric 3x3 Braun Terracotta & Botanical Forest Mosaic -->
+    <!-- Tile (0,0): Botanical Forest Deep (#2D5A43) -->
     <path
-        android:fillColor="#0E3A2A"
-        android:pathData="M33,31L41,31A2,2 0,0 1,43 33L43,41A2,2 0,0 1,41 43L33,43A2,2 0,0 1,31 41L31,33A2,2 0,0 1,33 31z" />
-    <!-- Tile (0,1): Level 3 Vibrant Emerald -->
+        android:fillColor="#2D5A43"
+        android:pathData="M33,31L41,31A2.5,2.5 0,0 1,43.5 33.5L43.5,41.5A2.5,2.5 0,0 1,41 44L33,44A2.5,2.5 0,0 1,30.5 41.5L30.5,33.5A2.5,2.5 0,0 1,33 31z" />
+    <!-- Tile (0,1): Botanical Forest Luminous (#4E8C6F) -->
     <path
-        android:fillColor="#229965"
-        android:pathData="M50,31L58,31A2,2 0,0 1,60 33L60,41A2,2 0,0 1,58 43L50,43A2,2 0,0 1,48 41L48,33A2,2 0,0 1,50 31z" />
-    <!-- Tile (0,2): Level 2 Mid Emerald -->
+        android:fillColor="#4E8C6F"
+        android:pathData="M50,31L58,31A2.5,2.5 0,0 1,60.5 33.5L60.5,41.5A2.5,2.5 0,0 1,58 44L50,44A2.5,2.5 0,0 1,47.5 41.5L47.5,33.5A2.5,2.5 0,0 1,50 31z" />
+    <!-- Tile (0,2): Warm Ochre (#C27D38) -->
     <path
-        android:fillColor="#166544"
-        android:pathData="M67,31L75,31A2,2 0,0 1,77 33L77,41A2,2 0,0 1,75 43L67,43A2,2 0,0 1,65 41L65,33A2,2 0,0 1,67 31z" />
+        android:fillColor="#C27D38"
+        android:pathData="M67,31L75,31A2.5,2.5 0,0 1,77.5 33.5L77.5,41.5A2.5,2.5 0,0 1,75 44L67,44A2.5,2.5 0,0 1,64.5 41.5L64.5,33.5A2.5,2.5 0,0 1,67 31z" />
 
     <!-- Row 2 -->
-    <!-- Tile (1,0): Level 2 Mid Emerald -->
+    <!-- Tile (1,0): Botanical Forest Mid (#3B7357) -->
     <path
-        android:fillColor="#166544"
-        android:pathData="M33,48L41,48A2,2 0,0 1,43 50L43,58A2,2 0,0 1,41 60L33,60A2,2 0,0 1,31 58L31,50A2,2 0,0 1,33 48z" />
-    <!-- Tile (1,1): Level 4 Luminous Emerald Centerpiece -->
+        android:fillColor="#3B7357"
+        android:pathData="M33,48L41,48A2.5,2.5 0,0 1,43.5 50.5L43.5,58.5A2.5,2.5 0,0 1,41 61L33,61A2.5,2.5 0,0 1,30.5 58.5L30.5,50.5A2.5,2.5 0,0 1,33 48z" />
+    <!-- Tile (1,1): Braun Terracotta Centerpiece (#B85435) -->
     <path
-        android:fillColor="#34D399"
-        android:pathData="M50,48L58,48A2,2 0,0 1,60 50L60,58A2,2 0,0 1,58 60L50,60A2,2 0,0 1,48 58L48,50A2,2 0,0 1,50 48z" />
-    <!-- Tile (1,2): Level 4 Luminous Emerald -->
+        android:fillColor="#B85435"
+        android:pathData="M50,48L58,48A2.5,2.5 0,0 1,60.5 50.5L60.5,58.5A2.5,2.5 0,0 1,58 61L50,61A2.5,2.5 0,0 1,47.5 58.5L47.5,50.5A2.5,2.5 0,0 1,50 48z" />
+    <!-- Tile (1,2): Braun Terracotta Luminous (#D46A48) -->
     <path
-        android:fillColor="#34D399"
-        android:pathData="M67,48L75,48A2,2 0,0 1,77 50L77,58A2,2 0,0 1,75 60L67,60A2,2 0,0 1,65 58L65,50A2,2 0,0 1,67 48z" />
+        android:fillColor="#D46A48"
+        android:pathData="M67,48L75,48A2.5,2.5 0,0 1,77.5 50.5L77.5,58.5A2.5,2.5 0,0 1,75 61L67,61A2.5,2.5 0,0 1,64.5 58.5L64.5,50.5A2.5,2.5 0,0 1,67 48z" />
 
     <!-- Row 3 -->
-    <!-- Tile (2,0): Level 0 Recessed Tile -->
+    <!-- Tile (2,0): Warm Recessed Carbon Tile (#282623) -->
     <path
-        android:fillColor="#1B1F2A"
-        android:pathData="M33,65L41,65A2,2 0,0 1,43 67L43,75A2,2 0,0 1,41 77L33,77A2,2 0,0 1,31 75L31,67A2,2 0,0 1,33 65z" />
-    <!-- Tile (2,1): Level 3 Vibrant Emerald -->
+        android:fillColor="#282623"
+        android:pathData="M33,65L41,65A2.5,2.5 0,0 1,43.5 67.5L43.5,75.5A2.5,2.5 0,0 1,41 78L33,78A2.5,2.5 0,0 1,30.5 75.5L30.5,67.5A2.5,2.5 0,0 1,33 65z" />
+    <!-- Tile (2,1): Botanical Forest Luminous (#4E8C6F) -->
     <path
-        android:fillColor="#229965"
-        android:pathData="M50,65L58,65A2,2 0,0 1,60 67L60,75A2,2 0,0 1,58 77L50,77A2,2 0,0 1,48 75L48,67A2,2 0,0 1,50 65z" />
-    <!-- Tile (2,2): Today Active Specular Tile (Level 4 + Crisp White Highlight) -->
+        android:fillColor="#4E8C6F"
+        android:pathData="M50,65L58,65A2.5,2.5 0,0 1,60.5 67.5L60.5,75.5A2.5,2.5 0,0 1,58 78L50,78A2.5,2.5 0,0 1,47.5 75.5L47.5,67.5A2.5,2.5 0,0 1,50 65z" />
+    <!-- Tile (2,2): Active Specular Tile (Braun Terracotta + Warm Limestone Highlight) -->
     <path
-        android:fillColor="#34D399"
-        android:strokeColor="#F3F4F6"
+        android:fillColor="#D46A48"
+        android:strokeColor="#F5F3EF"
         android:strokeWidth="1.2"
-        android:pathData="M67,65L75,65A2,2 0,0 1,77 67L77,75A2,2 0,0 1,75 77L67,77A2,2 0,0 1,65 75L65,67A2,2 0,0 1,67 65z" />
+        android:pathData="M67,65L75,65A2.5,2.5 0,0 1,77.5 67.5L77.5,75.5A2.5,2.5 0,0 1,75 78L67,78A2.5,2.5 0,0 1,64.5 75.5L64.5,67.5A2.5,2.5 0,0 1,67 65z" />
 </vector>

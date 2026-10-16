@@ -18,20 +18,22 @@ import kotlin.math.min
 /**
  * High-DPI Canvas Bitmap renderer for Samsung Galaxy S26 Ultra One UI Home Screen Widgets.
  *
- * Renders crisp, anti-aliased GitHub contribution square matrices onto an [android.graphics.Bitmap]
- * with zero RemoteViews view-tree inflation overhead and 100% crash-proof Binder memory usage.
+ * Renders crisp, softly rounded architectural contribution matrices onto an [android.graphics.Bitmap]
+ * matching the Dieter Rams (Braun) / Things 3 / Kinfolk Warm Matte Carbon & Warm Limestone aesthetic.
  */
 object WidgetHeatmapBitmapRenderer {
 
-    private const val DARK_LEVEL_0_FILL = 0xFF181B22.toInt()
-    private const val DARK_LEVEL_0_STROKE = 0xFF242936.toInt()
-    private const val DARK_FUTURE_FILL = 0xFF0E1015.toInt()
-    private const val DARK_LABEL_COLOR = 0xFF525866.toInt()
+    // Warm Matte Carbon (#161514 surface) Level-0 & subtle stroke tokens
+    private const val DARK_LEVEL_0_FILL = 0xFF262421.toInt()
+    private const val DARK_LEVEL_0_STROKE = 0xFF302D29.toInt()
+    private const val DARK_FUTURE_FILL = 0xFF1D1B19.toInt()
+    private const val DARK_LABEL_COLOR = 0xFF8C857B.toInt()
 
-    private const val LIGHT_LEVEL_0_FILL = 0xFFEAE8E1.toInt()
-    private const val LIGHT_LEVEL_0_STROKE = 0xFFDFDCD2.toInt()
-    private const val LIGHT_FUTURE_FILL = 0xFFF4F2EC.toInt()
-    private const val LIGHT_LABEL_COLOR = 0xFF8A919E.toInt()
+    // Warm Limestone Paper (#FCFBF9 surface) Level-0 & subtle stroke tokens
+    private const val LIGHT_LEVEL_0_FILL = 0xFFEAE6DF.toInt()
+    private const val LIGHT_LEVEL_0_STROKE = 0xFFDFDBD2.toInt()
+    private const val LIGHT_FUTURE_FILL = 0xFFF3F0EA.toInt()
+    private const val LIGHT_LABEL_COLOR = 0xFF7A746B.toInt()
 
     /**
      * Renders the 18-week (126-day) wide architectural contribution matrix for the 4x2 widget.
@@ -102,12 +104,11 @@ object WidgetHeatmapBitmapRenderer {
         val availableGridHeight = (heightPx - topHeaderPx).coerceAtLeast(32f)
 
         val gapRatio = 0.22f
-        // columns * cell + (columns - 1) * cell * gapRatio = availableGridWidth
         val cellByWidth = availableGridWidth / (weeks + (weeks - 1) * gapRatio)
         val cellByHeight = availableGridHeight / (7 + 6 * gapRatio)
         val cellSize = min(cellByWidth, cellByHeight)
         val gap = cellSize * gapRatio
-        val cornerRadius = (cellSize * 0.23f).coerceAtLeast(1.8f * density)
+        val cornerRadius = cellSize * 0.24f
 
         // Center the grid horizontally and vertically in the available space
         val totalGridWidth = weeks * cellSize + (weeks - 1) * gap
@@ -120,18 +121,17 @@ object WidgetHeatmapBitmapRenderer {
         }
         val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = (0.85f * density).coerceAtLeast(1f)
+            strokeWidth = (0.75f * density).coerceAtLeast(1f)
         }
         val todayBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = (1.5f * density).coerceAtLeast(1.5f)
+            strokeWidth = (1.4f * density).coerceAtLeast(1.4f)
             color = palette.levelColorArgb(4, isDarkTheme)
         }
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = if (isDarkTheme) DARK_LABEL_COLOR else LIGHT_LABEL_COLOR
-            textSize = 8.2f * density
-            typeface = Typeface.MONOSPACE
-            isFakeBoldText = true
+            textSize = 8.4f * density
+            typeface = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
         }
 
         val rect = RectF()
@@ -142,17 +142,16 @@ object WidgetHeatmapBitmapRenderer {
             val weekStart = firstWeekMonday.plusWeeks(weekIdx.toLong())
             val colX = startX + weekIdx * (cellSize + gap)
 
-            // Draw micro month label when month changes
+            // Draw subtle editorial month label when month changes
             if (showMonthLabels) {
                 val firstDayOfWeekMonth = weekStart.monthValue
                 if (firstDayOfWeekMonth != lastLabeledMonth && (colX - lastLabelX) >= (cellSize * 2.4f)) {
                     val monthLabel = weekStart.month
                         .getDisplayName(TextStyle.SHORT, Locale.US)
-                        .uppercase(Locale.US)
                     canvas.drawText(
                         monthLabel,
                         colX,
-                        (startY - 3.2f * density).coerceAtLeast(8f * density),
+                        (startY - 3.4f * density).coerceAtLeast(8f * density),
                         textPaint
                     )
                     lastLabeledMonth = firstDayOfWeekMonth
@@ -192,7 +191,7 @@ object WidgetHeatmapBitmapRenderer {
                         val inset = todayBorderPaint.strokeWidth / 2f
                         rect.set(colX + inset, rowY + inset, colX + cellSize - inset, rowY + cellSize - inset)
                         todayBorderPaint.color = if (level == 4) {
-                            if (isDarkTheme) 0xFFF3F4F6.toInt() else 0xFF111317.toInt()
+                            if (isDarkTheme) 0xFFF5F3EF.toInt() else 0xFF1C1B19.toInt()
                         } else {
                             palette.levelColorArgb(4, isDarkTheme)
                         }

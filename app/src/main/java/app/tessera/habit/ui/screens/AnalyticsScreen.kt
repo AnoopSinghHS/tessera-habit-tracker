@@ -1,8 +1,8 @@
 package app.tessera.habit.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -28,6 +30,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.tessera.habit.data.model.HabitStats
 import app.tessera.habit.data.model.HabitWithLogs
@@ -35,11 +40,16 @@ import app.tessera.habit.ui.components.HabitIcons
 import app.tessera.habit.ui.components.StreakPillBadge
 import app.tessera.habit.ui.components.YearOverviewCard
 import app.tessera.habit.ui.theme.HabitPalette
+import app.tessera.habit.ui.theme.HabitPaletteSpec
 import app.tessera.habit.ui.theme.TesseraTheme
 import app.tessera.habit.ui.theme.TesseraType
 import app.tessera.habit.ui.viewmodel.TesseraUiState
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import kotlin.math.cos
 import kotlin.math.roundToInt
+import kotlin.math.sin
 
 private data class HabitTelemetryRow(
     val habitWithLogs: HabitWithLogs,
@@ -62,13 +72,17 @@ fun AnalyticsScreen(
                 habitWithLogs = hwl,
                 stats = hwl.computeStats(today)
             )
-        }.sortedByDescending { it.stats.currentStreak * 100 + (it.stats.completionRate30Days * 100).roundToInt() }
+        }.sortedByDescending {
+            it.stats.currentStreak * 100 + (it.stats.completionRate30Days * 100).roundToInt()
+        }
     }
 
-    val globalConsistencyPct = remember(telemetryRows) {
-        if (telemetryRows.isEmpty()) 0
-        else ((telemetryRows.sumOf { it.stats.completionRate30Days.toDouble() } / telemetryRows.size) * 100.0).roundToInt()
+    val globalConsistencyRatio = remember(telemetryRows) {
+        if (telemetryRows.isEmpty()) 0f
+        else (telemetryRows.sumOf { it.stats.completionRate30Days.toDouble() } / telemetryRows.size).toFloat()
     }
+    val globalConsistencyPct = (globalConsistencyRatio * 100f).roundToInt()
+
     val topActiveStreak = remember(telemetryRows) {
         telemetryRows.maxOfOrNull { it.stats.currentStreak } ?: 0
     }
@@ -79,86 +93,130 @@ fun AnalyticsScreen(
         telemetryRows.sumOf { it.stats.totalCompletions }
     }
 
-    val globalWeekdayDistribution = remember(telemetryRows) {
-        val acc = IntArray(7)
+    // Reorder weekday distribution (Mon..Sun -> Sun..Sat) for the "S M T W T F S" Braun chart
+    val sundayFirstWeekdayCounts = remember(telemetryRows) {
+        val monFirst = IntArray(7)
         telemetryRows.forEach { row ->
             row.stats.weekdayDistribution.forEachIndexed { idx, v ->
-                if (idx in 0..6) acc[idx] += v
+                if (idx in 0..6) monFirst[idx] += v
             }
         }
-        acc.toList()
+        // Index 6 is Sunday in Mon..Sun (0..6)
+        listOf(
+            monFirst[6], // S
+            monFirst[0], // M
+            monFirst[1], // T
+            monFirst[2], // W
+            monFirst[3], // T
+            monFirst[4], // F
+            monFirst[5]  // S
+        )
+    }
+
+    val formattedDate = remember(today) {
+        today.format(DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.US))
     }
 
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(colors.surfaceAbyss),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 104.dp),
+        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 104.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // 1. Editorial Header
-        item(key = "telemetry_header") {
-            Column {
+        // 1. Centered Editorial Header (matching Stitch right-hand dark screen)
+        item(key = "insights_header") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(
-                    text = "PORTFOLIO INSTRUMENTATION · ${activeHabits.size} ACTIVE RITUALS",
-                    style = TesseraType.TelemetryBadge,
-                    color = colors.textSecondary
+                    text = formattedDate,
+                    style = TesseraType.EditorialDateHeader,
+                    color = colors.textPrimary,
+                    textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Telemetry",
-                    style = TesseraType.DisplayMomentum,
-                    color = colors.textPrimary
+                    text = "Annual rhythm across ${activeHabits.size} active habits",
+                    style = TesseraType.CardSubtitle,
+                    color = colors.textSecondary,
+                    textAlign = TextAlign.Center
                 )
             }
         }
 
-        // 2. Aggregated 52-Week Contribution Matrix
+        // 2. Aggregated 52-Week Contribution Matrix (Warm Ochre / Botanical palette)
         item(key = "year_overview_card") {
             YearOverviewCard(
                 habitsWithLogs = activeHabits,
-                palette = HabitPalette.EmeraldMatrix,
+                palette = HabitPalette.CyberAmber,
                 today = today
             )
         }
 
-        // 3. Global 2x2 Bento Summary
+        // 3. Signature Braun Horology Dial + 7-Day Vertical Pill Chart (matching Stitch concept!)
+        item(key = "braun_dial_and_weekly_bars") {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                BraunRadialConsistencyCard(
+                    consistencyRatio = globalConsistencyRatio,
+                    palette = HabitPalette.CyberAmber,
+                    modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(1f)
+                )
+
+                BraunWeeklyPillChartCard(
+                    sundayFirstCounts = sundayFirstWeekdayCounts,
+                    modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(1f)
+                )
+            }
+        }
+
+        // 4. Global 2x2 Summary Bento
         item(key = "global_bento_summary") {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     GlobalStatTile(
-                        label = "CONSISTENCY INDEX",
+                        label = "30-Day Consistency",
                         value = "$globalConsistencyPct%",
-                        subtitle = "30-day portfolio avg",
+                        subtitle = "Rolling average",
                         highlight = true,
                         modifier = Modifier.weight(1f)
                     )
                     GlobalStatTile(
-                        label = "PEAK ACTIVE STREAK",
-                        value = "$topActiveStreak DAYS",
-                        subtitle = "Current leader",
+                        label = "Longest Active",
+                        value = "$topActiveStreak days",
+                        subtitle = "Current streak",
                         highlight = false,
                         modifier = Modifier.weight(1f)
                     )
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     GlobalStatTile(
-                        label = "ALL-TIME RECORD",
-                        value = "$topBestStreak DAYS",
-                        subtitle = "Longest sequence",
+                        label = "All-Time Best",
+                        value = "$topBestStreak days",
+                        subtitle = "Personal record",
                         highlight = false,
                         modifier = Modifier.weight(1f)
                     )
                     GlobalStatTile(
-                        label = "LIFETIME VOLUME",
+                        label = "Total Check-ins",
                         value = "$totalCheckIns",
-                        subtitle = "Total logged units",
+                        subtitle = "All-time volume",
                         highlight = true,
                         modifier = Modifier.weight(1f)
                     )
@@ -166,18 +224,13 @@ fun AnalyticsScreen(
             }
         }
 
-        // 4. Global Weekday Rhythm Distribution
-        item(key = "weekday_rhythm") {
-            GlobalWeekdayRhythmCard(weekdayCounts = globalWeekdayDistribution)
-        }
-
-        // 5. Streak Leaderboard & Ritual Breakdown Header
+        // 5. Habit Breakdown List
         item(key = "leaderboard_header") {
             Text(
-                text = "STREAK LEADERBOARD & RITUAL BREAKDOWN",
-                style = TesseraType.TelemetryBadge,
-                color = colors.textSecondary,
-                modifier = Modifier.padding(top = 4.dp)
+                text = "Habit Breakdown",
+                style = TesseraType.SectionTitle,
+                color = colors.textPrimary,
+                modifier = Modifier.padding(top = 6.dp)
             )
         }
 
@@ -193,6 +246,165 @@ fun AnalyticsScreen(
     }
 }
 
+/**
+ * Braun Horology Radial Tick Dial (left square card from Stitch dark screen).
+ * Renders 48 fine radial tick marks around a warm ivory center dot.
+ */
+@Composable
+fun BraunRadialConsistencyCard(
+    consistencyRatio: Float,
+    palette: HabitPaletteSpec,
+    modifier: Modifier = Modifier
+) {
+    val colors = TesseraTheme.colors
+    val clampedRatio = consistencyRatio.coerceIn(0f, 1f)
+    val activeAccent = palette.colorForLevel(4, colors.isDark)
+    val warmTick = palette.colorForLevel(3, colors.isDark)
+    val inactiveTick = colors.borderSpecular
+    val centerDotColor = if (colors.isDark) colors.textPrimary else activeAccent
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp),
+        color = colors.surfaceCard,
+        border = BorderStroke(1.dp, colors.borderHairline)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val totalTicks = 48
+                val litTicks = (clampedRatio * totalTicks).roundToInt().coerceIn(8, totalTicks)
+                val center = Offset(size.width / 2f, size.height / 2f)
+                val outerRadius = (size.minDimension / 2f) * 0.88f
+                val innerRadius = outerRadius * 0.76f
+                val strokeWidthPx = 1.6.dp.toPx()
+
+                for (i in 0 until totalTicks) {
+                    val angleDeg = -90.0 + (i * (360.0 / totalTicks))
+                    val angleRad = Math.toRadians(angleDeg)
+                    val cosA = cos(angleRad).toFloat()
+                    val sinA = sin(angleRad).toFloat()
+
+                    val start = Offset(
+                        x = center.x + innerRadius * cosA,
+                        y = center.y + innerRadius * sinA
+                    )
+                    val end = Offset(
+                        x = center.x + outerRadius * cosA,
+                        y = center.y + outerRadius * sinA
+                    )
+
+                    val tickColor = when {
+                        i < litTicks / 2 -> activeAccent
+                        i < litTicks -> warmTick
+                        else -> inactiveTick
+                    }
+
+                    drawLine(
+                        color = tickColor,
+                        start = start,
+                        end = end,
+                        strokeWidth = strokeWidthPx,
+                        cap = StrokeCap.Round
+                    )
+                }
+
+                // Warm sculptural center dot
+                drawCircle(
+                    color = centerDotColor,
+                    radius = 9.dp.toPx(),
+                    center = center
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 7-Bar Vertical Pill Chart ("S M T W T F S") matching the right square card in the Stitch concept.
+ */
+@Composable
+fun BraunWeeklyPillChartCard(
+    sundayFirstCounts: List<Int>,
+    modifier: Modifier = Modifier
+) {
+    val colors = TesseraTheme.colors
+    val maxCount = (sundayFirstCounts.maxOrNull() ?: 1).coerceAtLeast(1)
+    val dayInitials = listOf("S", "M", "T", "W", "T", "F", "S")
+    val fillPillColor = colors.textPrimary
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp),
+        color = colors.surfaceCard,
+        border = BorderStroke(1.dp, colors.borderHairline)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.Bottom
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                for (i in 0..6) {
+                    val count = sundayFirstCounts.getOrElse(i) { 0 }
+                    val fillFraction = if (maxCount > 0 && count > 0) {
+                        (count.toFloat() / maxCount.toFloat()).coerceIn(0.24f, 0.92f)
+                    } else {
+                        0.32f
+                    }
+                    // Track height varies gently like an equalizer in the Stitch concept
+                    val trackMultipliers = listOf(0.56f, 0.72f, 0.96f, 0.80f, 0.68f, 0.62f, 0.52f)
+                    val trackFraction = trackMultipliers[i]
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(7.dp)
+                                .fillMaxHeight(trackFraction)
+                                .clip(CircleShape)
+                                .background(colors.surfaceRecessed),
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(7.dp)
+                                    .fillMaxHeight(fillFraction)
+                                    .clip(CircleShape)
+                                    .background(fillPillColor)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = dayInitials[i],
+                            style = TesseraType.MicroAxis,
+                            color = colors.textSecondary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun GlobalStatTile(
     label: String,
@@ -202,127 +414,32 @@ private fun GlobalStatTile(
     modifier: Modifier = Modifier
 ) {
     val colors = TesseraTheme.colors
-    val emerald = HabitPalette.EmeraldMatrix.colorForLevel(4, colors.isDark)
+    val accent = HabitPalette.EmeraldMatrix.colorForLevel(4, colors.isDark)
 
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         color = colors.surfaceCard,
         border = BorderStroke(1.dp, colors.borderHairline)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = label,
                 style = TesseraType.MicroAxis,
-                color = colors.textMuted
+                color = colors.textSecondary
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = value,
                 style = TesseraType.TelemetryHero,
-                color = if (highlight) emerald else colors.textPrimary
+                color = if (highlight) accent else colors.textPrimary
             )
-            Spacer(modifier = Modifier.height(3.dp))
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = subtitle,
                 style = TesseraType.CardSubtitle,
-                color = colors.textSecondary
+                color = colors.textMuted
             )
-        }
-    }
-}
-
-@Composable
-private fun GlobalWeekdayRhythmCard(weekdayCounts: List<Int>) {
-    val colors = TesseraTheme.colors
-    val palette = HabitPalette.CobaltPulse
-    val maxCount = (weekdayCounts.maxOrNull() ?: 1).coerceAtLeast(1)
-    val peakIndex = weekdayCounts.indices.maxByOrNull { weekdayCounts[it] } ?: 0
-    val dayNames = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = colors.surfaceCard,
-        border = BorderStroke(1.dp, colors.borderHairline)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "WEEKDAY RHYTHM CADENCE",
-                    style = TesseraType.TelemetryBadge,
-                    color = colors.textSecondary
-                )
-                Text(
-                    text = "PEAK: ${dayNames[peakIndex]}",
-                    style = TesseraType.MicroAxis,
-                    color = palette.colorForLevel(4, colors.isDark)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(98.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.Bottom
-            ) {
-                for (i in 0..6) {
-                    val count = weekdayCounts.getOrElse(i) { 0 }
-                    val ratio = (count.toFloat() / maxCount.toFloat()).coerceIn(0.08f, 1f)
-                    val level = when {
-                        count == 0 -> 0
-                        ratio >= 0.85f -> 4
-                        ratio >= 0.55f -> 3
-                        else -> 2
-                    }
-
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Bottom
-                    ) {
-                        Text(
-                            text = count.toString(),
-                            style = TesseraType.MicroAxis,
-                            color = colors.textSecondary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(0.68f)
-                                .height(58.dp)
-                                .clip(RoundedCornerShape(5.dp))
-                                .background(colors.surfaceRecessed),
-                            contentAlignment = Alignment.BottomCenter
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .fillMaxHeight(ratio)
-                                    .clip(RoundedCornerShape(5.dp))
-                                    .background(palette.colorForLevel(level, colors.isDark))
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(5.dp))
-                        Text(
-                            text = dayNames[i],
-                            style = TesseraType.MicroAxis,
-                            color = if (i == peakIndex) palette.colorForLevel(4, colors.isDark) else colors.textMuted
-                        )
-                    }
-                }
-            }
         }
     }
 }
@@ -337,40 +454,32 @@ private fun HabitBreakdownRowCard(
     val stats = row.stats
     val palette = remember(habit.colorKey) { HabitPalette.resolve(habit.colorKey) }
     val ratePct = (stats.completionRate30Days * 100f).roundToInt()
+    val accent = palette.colorForLevel(4, colors.isDark)
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         color = colors.surfaceCard,
         border = BorderStroke(1.dp, colors.borderHairline)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(9.dp))
-                        .background(palette.colorForLevel(1, colors.isDark))
-                        .border(1.dp, palette.level3.copy(alpha = 0.35f), RoundedCornerShape(9.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = HabitIcons.resolve(habit.iconKey),
-                        contentDescription = habit.title,
-                        tint = palette.colorForLevel(4, colors.isDark),
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+                Icon(
+                    imageVector = HabitIcons.resolve(habit.iconKey),
+                    contentDescription = habit.title,
+                    tint = colors.textPrimary,
+                    modifier = Modifier.size(22.dp)
+                )
 
                 Spacer(modifier = Modifier.width(12.dp))
 
@@ -381,9 +490,9 @@ private fun HabitBreakdownRowCard(
                         color = colors.textPrimary
                     )
                     Text(
-                        text = "#${habit.slug} · BEST ${stats.bestStreak}D · ${stats.totalCompletions} LOGS",
-                        style = TesseraType.MicroAxis,
-                        color = colors.textMuted
+                        text = "Best ${stats.bestStreak} days · ${stats.totalCompletions} total check-ins",
+                        style = TesseraType.StreakLabel,
+                        color = colors.textSecondary
                     )
                 }
 
@@ -394,7 +503,7 @@ private fun HabitBreakdownRowCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -410,17 +519,17 @@ private fun HabitBreakdownRowCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(stats.completionRate30Days.coerceIn(0.03f, 1f))
+                            .fillMaxWidth(stats.completionRate30Days.coerceIn(0.04f, 1f))
                             .height(6.dp)
                             .clip(RoundedCornerShape(3.dp))
-                            .background(palette.colorForLevel(4, colors.isDark))
+                            .background(accent)
                     )
                 }
 
                 Text(
-                    text = "30D $ratePct%",
+                    text = "$ratePct%",
                     style = TesseraType.MicroAxis,
-                    color = palette.colorForLevel(4, colors.isDark)
+                    color = accent
                 )
             }
         }

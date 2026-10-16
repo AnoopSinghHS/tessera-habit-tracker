@@ -157,16 +157,20 @@ object HabitWidgetUpdater {
         val bgRes = if (isDark) R.drawable.widget_bg_dark else R.drawable.widget_bg_light
         views.setInt(R.id.widget_root, "setBackgroundResource", bgRes)
 
-        val primaryTextColor = if (isDark) 0xFFF3F4F6.toInt() else 0xFF111317.toInt()
-        val secondaryTextColor = if (isDark) 0xFF8A919E.toInt() else 0xFF686D76.toInt()
+        // Warm Limestone (#F5F3EF) on Warm Matte Carbon (#161514), or Warm Ink (#1C1B19) on Limestone (#FCFBF9)
+        val primaryTextColor = if (isDark) 0xFFF5F3EF.toInt() else 0xFF1C1B19.toInt()
+        val secondaryTextColor = if (isDark) 0xFF9A948A.toInt() else 0xFF6E6960.toInt()
 
         if (selectedHabit == null) {
             views.setTextViewText(R.id.widget_habit_title, "Tessera Rituals")
             views.setTextColor(R.id.widget_habit_title, primaryTextColor)
-            views.setTextViewText(R.id.widget_streak_badge, "0D")
-            views.setTextViewText(R.id.widget_habit_subtitle, "Tap to create a habit")
+            views.setTextViewText(
+                R.id.widget_streak_badge,
+                if (isCompact) "0d streak" else "0 day streak"
+            )
+            views.setTextViewText(R.id.widget_habit_subtitle, "Tap to configure ritual")
             views.setTextColor(R.id.widget_habit_subtitle, secondaryTextColor)
-            views.setTextViewText(R.id.widget_check_in_btn, "+")
+            views.setTextViewText(R.id.widget_check_in_btn, "+1")
 
             val emptyBitmap = if (isCompact) {
                 WidgetHeatmapBitmapRenderer.renderCompactHeatmap(context, null, isDark)
@@ -200,30 +204,30 @@ object HabitWidgetUpdater {
         val target = habit.targetPerDay.coerceAtLeast(1)
         val isCompletedToday = todayCount >= target
 
-        // Header Title & Subtitle
+        // Header Title & Clean Editorial Streak Text (Zero Emojis)
         views.setTextViewText(R.id.widget_habit_title, habit.title)
         views.setTextColor(R.id.widget_habit_title, primaryTextColor)
 
         val streakText = if (isCompact) {
-            "${stats.currentStreak}D"
+            "${stats.currentStreak}d streak"
         } else {
-            "${stats.currentStreak}D STREAK"
+            "${stats.currentStreak} day streak"
         }
         views.setTextViewText(R.id.widget_streak_badge, streakText)
         views.setTextColor(R.id.widget_streak_badge, accentArgb)
         views.setViewVisibility(R.id.widget_streak_badge, View.VISIBLE)
 
         val subtitleText = if (isCompact) {
-            if (target > 1) "$todayCount/$target" else if (isCompletedToday) "DONE" else "0/1"
+            if (target > 1) "$todayCount/$target" else if (isCompletedToday) "Done" else "0/1"
         } else {
             val statusPart = if (target > 1) {
-                "$todayCount/$target ${habit.unitLabel.uppercase(Locale.US)}"
+                "$todayCount/$target ${habit.unitLabel.lowercase(Locale.US)}"
             } else if (isCompletedToday) {
-                "COMPLETED TODAY"
+                "Completed today"
             } else {
-                "PENDING TODAY"
+                "Pending today"
             }
-            "#${habit.slug} · $statusPart"
+            "${habit.slug} · $statusPart"
         }
         views.setTextViewText(R.id.widget_habit_subtitle, subtitleText)
         views.setTextColor(R.id.widget_habit_subtitle, secondaryTextColor)
@@ -233,11 +237,11 @@ object HabitWidgetUpdater {
             views.setTextColor(R.id.widget_color_dot, accentArgb)
         }
 
-        // 1-Tap Check-In Button State
+        // Tactile Circular 1-Tap Check-In Button State
         val checkButtonLabel = when {
             isCompletedToday -> "✓"
             target > 1 && todayCount > 0 -> "$todayCount/$target"
-            else -> "+"
+            else -> "+1"
         }
         views.setTextViewText(R.id.widget_check_in_btn, checkButtonLabel)
 
@@ -314,19 +318,22 @@ object HabitWidgetUpdater {
         appWidgetManager.updateAppWidget(appWidgetId, views)
     }
 
+    /**
+     * Resolves an architectural monochrome geometric glyph (zero colorful emojis).
+     */
     private fun resolveGlyphForIconKey(iconKey: String): String {
         return when (iconKey.trim().lowercase(Locale.US)) {
-            "bolt", "zap", "focus" -> "⚡"
+            "bolt", "zap", "focus" -> "◆"
             "terminal", "cli", "code" -> "⌘"
             "fitness", "dumbbell", "gym" -> "✦"
             "run", "running", "bicycle" -> "▸"
             "book", "read" -> "▤"
-            "water", "hydration" -> "💧"
+            "water", "hydration" -> "◈"
             "meditation", "brain" -> "◎"
-            "flame", "fire" -> "🔥"
+            "flame", "fire" -> "▲"
             "heart" -> "♥"
             "leaf", "spa" -> "❖"
-            "sun", "morning" -> "☀"
+            "sun", "morning" -> "☼"
             "sleep", "moon" -> "☾"
             else -> "▣"
         }

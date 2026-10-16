@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -42,8 +41,8 @@ import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 
 /**
- * High-precision GitHub Contribution Heatmap Matrix rendered on a single hardware-accelerated
- * Compose [Canvas] for 120Hz scrolling performance on QHD+ AMOLED displays.
+ * Tactile Contribution Heatmap Matrix rendered on a single hardware-accelerated
+ * Compose [Canvas] for 120Hz scrolling performance.
  *
  * Rows = 7 (Monday = 0 .. Sunday = 6).
  * Columns = [weeks] weeks ending on the current week (aligned to Monday..Sunday).
@@ -54,11 +53,11 @@ fun GithubHeatmapGrid(
     targetPerDay: Int,
     palette: HabitPaletteSpec,
     modifier: Modifier = Modifier,
-    weeks: Int = 26,
+    weeks: Int = 15,
     cellSize: Dp = 11.dp,
-    cellGap: Dp = 3.dp,
-    cornerRadius: Dp = 2.5.dp,
-    showWeekdayLabels: Boolean = true,
+    cellGap: Dp = 2.5.dp,
+    cornerRadius: Dp = 3.dp,
+    showWeekdayLabels: Boolean = false,
     showMonthLabels: Boolean = false,
     scrollable: Boolean = true,
     today: LocalDate = LocalDate.now(),
@@ -83,16 +82,15 @@ fun GithubHeatmapGrid(
     val gapPx = with(density) { cellGap.toPx() }
     val stepPx = cellPx + gapPx
     val radiusPx = with(density) { cornerRadius.toPx() }
-    val strokePx = with(density) { 1.1.dp.toPx() }
-    val selectedStrokePx = with(density) { 1.6.dp.toPx() }
-    val monthHeaderHeightDp = if (showMonthLabels) 15.dp else 0.dp
+    val strokePx = with(density) { 1.dp.toPx() }
+    val selectedStrokePx = with(density) { 1.5.dp.toPx() }
+    val monthHeaderHeightDp = if (showMonthLabels) 16.dp else 0.dp
     val monthHeaderHeightPx = with(density) { monthHeaderHeightDp.toPx() }
 
     val canvasWidthDp = (cellSize * safeWeeks) + (cellGap * (safeWeeks - 1).coerceAtLeast(0))
     val gridHeightDp = (cellSize * 7) + (cellGap * 6)
     val totalCanvasHeightDp = gridHeightDp + monthHeaderHeightDp
 
-    // Precompute month labels for columns where the 1st of a month falls or first column
     val monthMarkers = remember(startMonday, safeWeeks, showMonthLabels) {
         if (!showMonthLabels) emptyList()
         else buildList {
@@ -105,7 +103,6 @@ fun GithubHeatmapGrid(
                 if (monthVal != lastMonth && (col == 0 || weekMonday.dayOfMonth <= 7)) {
                     val label = representativeDate.month
                         .getDisplayName(JavaTextStyle.SHORT, Locale.US)
-                        .uppercase(Locale.US)
                     add(col to label)
                     lastMonth = monthVal
                 }
@@ -122,7 +119,8 @@ fun GithubHeatmapGrid(
 
     Row(
         modifier = modifier,
-        verticalAlignment = Alignment.Bottom
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.End
     ) {
         if (showWeekdayLabels) {
             Column(
@@ -158,14 +156,15 @@ fun GithubHeatmapGrid(
         }
 
         val canvasContainerModifier = if (scrollable) {
-            Modifier
-                .weight(1f)
-                .horizontalScroll(scrollState)
+            Modifier.horizontalScroll(scrollState)
         } else {
             Modifier
         }
 
-        Box(modifier = canvasContainerModifier) {
+        Box(
+            modifier = canvasContainerModifier,
+            contentAlignment = Alignment.CenterEnd
+        ) {
             val tapModifier = if (onDateClick != null) {
                 Modifier.pointerInput(startMonday, safeWeeks, todayEpoch, onDateClick) {
                     detectTapGestures { offset ->
@@ -194,7 +193,6 @@ fun GithubHeatmapGrid(
                     .height(totalCanvasHeightDp)
                     .then(tapModifier)
             ) {
-                // Draw month headers if enabled
                 if (showMonthLabels) {
                     var lastEndPx = -10f
                     monthMarkers.forEach { (col, monthLabel) ->
@@ -212,7 +210,6 @@ fun GithubHeatmapGrid(
                     }
                 }
 
-                // Draw 7xN contribution squares
                 val startEpoch = startMonday.toEpochDay()
                 for (col in 0 until safeWeeks) {
                     val colX = col * stepPx
@@ -221,13 +218,7 @@ fun GithubHeatmapGrid(
                         val rowY = monthHeaderHeightPx + (row * stepPx)
 
                         if (cellEpoch > todayEpoch) {
-                            // Future day in current week: ultra-subtle ghost outline
-                            drawRoundRect(
-                                color = colors.surfaceRecessed.copy(alpha = 0.32f),
-                                topLeft = Offset(colX, rowY),
-                                size = Size(cellPx, cellPx),
-                                cornerRadius = CornerRadius(radiusPx, radiusPx)
-                            )
+                            // Leave future days in the current week blank for the signature staircase edge
                             continue
                         }
 
@@ -242,10 +233,10 @@ fun GithubHeatmapGrid(
                             cornerRadius = CornerRadius(radiusPx, radiusPx)
                         )
 
-                        // Today indicator when uncompleted or partially completed
-                        if (cellEpoch == todayEpoch && level < 4) {
+                        // Subtle ring for today when not yet completed
+                        if (cellEpoch == todayEpoch && level == 0) {
                             drawRoundRect(
-                                color = palette.level3,
+                                color = palette.colorForLevel(3, colors.isDark).copy(alpha = 0.55f),
                                 topLeft = Offset(colX + strokePx / 2f, rowY + strokePx / 2f),
                                 size = Size(cellPx - strokePx, cellPx - strokePx),
                                 cornerRadius = CornerRadius(radiusPx, radiusPx),
@@ -271,7 +262,7 @@ fun GithubHeatmapGrid(
 }
 
 /**
- * 5-Stop Legend Strip ("LESS [0][1][2][3][4] MORE") rendered in tabular monospace.
+ * 5-Stop Pigment Legend Strip ("Less [0][1][2][3][4] More").
  */
 @Composable
 fun HeatmapIntensityLegend(
@@ -285,7 +276,7 @@ fun HeatmapIntensityLegend(
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
-            text = "LESS",
+            text = "Less",
             style = TesseraType.MicroAxis,
             color = colors.textMuted
         )
@@ -294,12 +285,12 @@ fun HeatmapIntensityLegend(
             Canvas(modifier = Modifier.width(10.dp).height(10.dp)) {
                 drawRoundRect(
                     color = boxColor,
-                    cornerRadius = CornerRadius(2.5.dp.toPx(), 2.5.dp.toPx())
+                    cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
                 )
             }
         }
         Text(
-            text = "MORE",
+            text = "More",
             style = TesseraType.MicroAxis,
             color = colors.textMuted
         )

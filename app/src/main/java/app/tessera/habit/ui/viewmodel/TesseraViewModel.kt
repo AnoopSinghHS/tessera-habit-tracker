@@ -36,7 +36,7 @@ data class TesseraUiState(
     val categories: List<String> = listOf("ALL"),
     val selectedCategory: String = "ALL",
     val isCompactBentoView: Boolean = false,
-    val themeMode: ThemeMode = ThemeMode.OBSIDIAN_DARK,
+    val themeMode: ThemeMode = ThemeMode.ALABASTER_LIGHT,
     val selectedHabitId: Long? = null,
     val isEditorOpen: Boolean = false,
     val editingHabit: HabitEntity? = null,
@@ -50,7 +50,7 @@ data class TesseraUiState(
 private data class LocalUiControlState(
     val selectedCategory: String = "ALL",
     val isCompactBentoView: Boolean = false,
-    val themeMode: ThemeMode = ThemeMode.OBSIDIAN_DARK,
+    val themeMode: ThemeMode = ThemeMode.ALABASTER_LIGHT,
     val selectedHabitId: Long? = null,
     val isEditorOpen: Boolean = false,
     val editingHabit: HabitEntity? = null,
@@ -77,7 +77,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
     private val controlState = MutableStateFlow(
         LocalUiControlState(
             isCompactBentoView = uiPrefs.getBoolean(KEY_COMPACT_BENTO_VIEW, false),
-            themeMode = ThemeMode.fromKey(uiPrefs.getString(KEY_THEME_MODE, ThemeMode.OBSIDIAN_DARK.key)),
+            themeMode = ThemeMode.fromKey(uiPrefs.getString(KEY_THEME_MODE, ThemeMode.ALABASTER_LIGHT.key)),
             lastApiEventSummary = readApiSummaryFromPrefs()
         )
     )
@@ -174,9 +174,9 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
 
     fun cycleThemeMode() {
         val next = when (controlState.value.themeMode) {
-            ThemeMode.OBSIDIAN_DARK -> ThemeMode.ALABASTER_LIGHT
             ThemeMode.ALABASTER_LIGHT -> ThemeMode.OBSIDIAN_DARK
-            ThemeMode.SYSTEM -> ThemeMode.OBSIDIAN_DARK
+            ThemeMode.OBSIDIAN_DARK -> ThemeMode.ALABASTER_LIGHT
+            ThemeMode.SYSTEM -> ThemeMode.ALABASTER_LIGHT
         }
         setThemeMode(next)
     }
@@ -234,9 +234,9 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
                     isEditorOpen = false,
                     editingHabit = null,
                     statusMessage = if (isNew) {
-                        "Created ritual #${habit.slug.ifBlank { HabitEntity.generateSlug(habit.title) }}"
+                        "Created ${habit.title}"
                     } else {
-                        "Updated ritual #${habit.slug}"
+                        "Updated ${habit.title}"
                     }
                 )
             }
@@ -249,7 +249,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
             controlState.update {
                 it.copy(
                     selectedHabitId = if (it.selectedHabitId == habitId) null else it.selectedHabitId,
-                    statusMessage = "Ritual deleted"
+                    statusMessage = "Habit deleted"
                 )
             }
         }
@@ -262,9 +262,9 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
             controlState.update {
                 it.copy(
                     statusMessage = if (nextArchived) {
-                        "Archived #${habit.slug}"
+                        "Archived ${habit.title}"
                     } else {
-                        "Restored #${habit.slug}"
+                        "Restored ${habit.title}"
                     }
                 )
             }
@@ -303,7 +303,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
         delta: Int = 1,
         count: Int? = null,
         dateIso: String = LocalDate.now().toString(),
-        note: String = "Triggered via Live API Bridge"
+        note: String = "Logged via API"
     ) {
         viewModelScope.launch {
             val intent = HabitApiContract.buildBroadcastIntent(
@@ -321,7 +321,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
             controlState.update {
                 it.copy(
                     lastApiEventSummary = summary,
-                    statusMessage = "Broadcast sent -> #$slug ($mode)"
+                    statusMessage = "Broadcast sent for $slug ($mode)"
                 )
             }
         }
@@ -331,7 +331,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val json = backupManager.exportToJsonString()
             onResult(json)
-            postMessage("Exported JSON snapshot to clipboard")
+            postMessage("Copied JSON backup to clipboard")
         }
     }
 
@@ -339,7 +339,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val result = backupManager.exportToUri(uri)
             result.onSuccess { count ->
-                postMessage("Exported $count rituals to JSON file")
+                postMessage("Exported $count habits to JSON file")
             }.onFailure { err ->
                 postMessage("Export failed: ${err.localizedMessage ?: "Unknown error"}")
             }
@@ -350,7 +350,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val result = backupManager.importFromJsonString(rawJson, replaceExisting)
             result.onSuccess { count ->
-                postMessage("Imported $count rituals from JSON payload")
+                postMessage("Imported $count habits from JSON")
             }.onFailure { err ->
                 postMessage("Import failed: ${err.localizedMessage ?: "Invalid JSON"}")
             }
@@ -361,7 +361,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val result = backupManager.importFromUri(uri, replaceExisting)
             result.onSuccess { count ->
-                postMessage("Imported $count rituals from backup file")
+                postMessage("Imported $count habits from backup file")
             }.onFailure { err ->
                 postMessage("Import failed: ${err.localizedMessage ?: "Invalid file"}")
             }
@@ -375,7 +375,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
                 it.copy(
                     selectedCategory = "ALL",
                     selectedHabitId = null,
-                    statusMessage = "Restored 16-week showcase portfolio"
+                    statusMessage = "Restored sample habits"
                 )
             }
         }
@@ -388,7 +388,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
                 it.copy(
                     selectedCategory = "ALL",
                     selectedHabitId = null,
-                    statusMessage = "Cleared all rituals and historical logs"
+                    statusMessage = "Cleared all habits and logs"
                 )
             }
         }
@@ -426,7 +426,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
     companion object {
         private const val UI_PREFS_NAME = "tessera_ui_prefs"
         private const val KEY_COMPACT_BENTO_VIEW = "compact_bento_view"
-        private const val KEY_THEME_MODE = "theme_mode"
+        private const val KEY_THEME_MODE = "theme_mode_v2"
 
         fun factory(application: Application): ViewModelProvider.Factory {
             return object : ViewModelProvider.Factory {

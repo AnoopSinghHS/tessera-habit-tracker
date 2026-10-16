@@ -14,13 +14,13 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 enum class ThemeMode(val key: String, val label: String) {
-    OBSIDIAN_DARK("dark", "Obsidian AMOLED"),
-    ALABASTER_LIGHT("light", "Warm Alabaster"),
-    SYSTEM("system", "System Auto");
+    ALABASTER_LIGHT("light", "Warm Limestone"),
+    OBSIDIAN_DARK("dark", "Matte Carbon"),
+    SYSTEM("system", "System");
 
     companion object {
         fun fromKey(key: String?): ThemeMode {
-            return entries.firstOrNull { it.key.equals(key, ignoreCase = true) } ?: OBSIDIAN_DARK
+            return entries.firstOrNull { it.key.equals(key, ignoreCase = true) } ?: ALABASTER_LIGHT
         }
     }
 }
@@ -68,7 +68,7 @@ object TesseraTheme {
 
 @Composable
 fun TesseraTheme(
-    themeMode: ThemeMode = ThemeMode.OBSIDIAN_DARK,
+    themeMode: ThemeMode = ThemeMode.ALABASTER_LIGHT,
     content: @Composable () -> Unit
 ) {
     val systemDark = isSystemInDarkTheme()
@@ -88,7 +88,7 @@ fun TesseraTheme(
             @Suppress("DEPRECATION")
             window.statusBarColor = tesseraColors.surfaceAbyss.toArgb()
             @Suppress("DEPRECATION")
-            window.navigationBarColor = tesseraColors.surfaceAbyss.toArgb()
+            window.navigationBarColor = tesseraColors.surfaceCard.toArgb()
             val controller = WindowCompat.getInsetsController(window, view)
             controller.isAppearanceLightStatusBars = !useDark
             controller.isAppearanceLightNavigationBars = !useDark

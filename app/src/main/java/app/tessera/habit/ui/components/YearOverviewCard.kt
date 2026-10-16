@@ -32,14 +32,14 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * Aggregated 52-Week Portfolio Contribution Matrix Card.
- * Combines daily completions across all active habits into a unified GitHub-style year overview.
+ * Aggregated 52-Week Contribution Matrix Card.
+ * Combines daily completions across all active habits into a unified tactile year overview.
  */
 @Composable
 fun YearOverviewCard(
     habitsWithLogs: List<HabitWithLogs>,
     modifier: Modifier = Modifier,
-    palette: HabitPaletteSpec = HabitPalette.EmeraldMatrix,
+    palette: HabitPaletteSpec = HabitPalette.CyberAmber,
     today: LocalDate = LocalDate.now()
 ) {
     val colors = TesseraTheme.colors
@@ -48,12 +48,9 @@ fun YearOverviewCard(
     val aggregatedByEpochDay = remember(habitsWithLogs) {
         val map = HashMap<Long, Int>()
         habitsWithLogs.forEach { hwl ->
-            val target = hwl.habit.targetPerDay.coerceAtLeast(1)
             hwl.logs.forEach { log ->
                 if (log.count > 0) {
-                    // Weight each habit normalized to 1 completion unit when target met, or raw count
-                    val normalized = if (log.count >= target) 1 else 1
-                    map[log.dateEpochDay] = (map[log.dateEpochDay] ?: 0) + normalized
+                    map[log.dateEpochDay] = (map[log.dateEpochDay] ?: 0) + 1
                 }
             }
         }
@@ -76,14 +73,14 @@ fun YearOverviewCard(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         color = colors.surfaceCard,
         border = BorderStroke(1.dp, colors.borderHairline)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(18.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -92,43 +89,43 @@ fun YearOverviewCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "52-WEEK CONTRIBUTION MATRIX",
-                        style = TesseraType.TelemetryBadge,
-                        color = palette.colorForLevel(4, colors.isDark)
+                        text = "Annual Contribution Matrix",
+                        style = TesseraType.CardSubtitle,
+                        color = colors.textSecondary
                     )
-                    Spacer(modifier = Modifier.height(3.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "$totalRawCheckIns Total Check-Ins",
-                        style = TesseraType.CardTitle,
+                        text = "$totalRawCheckIns check-ins",
+                        style = TesseraType.SectionTitle,
                         color = colors.textPrimary
                     )
                 }
 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "$activeDaysYear / 365 DAYS",
+                        text = "$activeDaysYear / 365 days",
                         style = TesseraType.TelemetryBadge,
-                        color = colors.textPrimary
+                        color = palette.colorForLevel(4, colors.isDark)
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "ACTIVE FOOTPRINT",
+                        text = "Active days",
                         style = TesseraType.MicroAxis,
                         color = colors.textMuted
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             GithubHeatmapGrid(
                 countsByEpochDay = aggregatedByEpochDay,
                 targetPerDay = dailyTargetHabits,
                 palette = palette,
                 weeks = 52,
-                cellSize = 11.dp,
+                cellSize = 11.5.dp,
                 cellGap = 3.dp,
-                cornerRadius = 2.5.dp,
+                cornerRadius = 3.dp,
                 showWeekdayLabels = true,
                 showMonthLabels = true,
                 scrollable = true,
@@ -137,21 +134,21 @@ fun YearOverviewCard(
                 onDateClick = { clicked -> selectedDate = clicked }
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Selected Day Inspector + Intensity Legend Row
+            // Selected Day Summary + Intensity Legend Row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(colors.surfaceElevated)
-                    .border(1.dp, colors.borderHairline, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                    .border(1.dp, colors.borderHairline, RoundedCornerShape(10.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${selectedDate.format(dateFormatter).uppercase(Locale.US)} · $selectedHabitsLogged/${habitsWithLogs.size} RITUALS",
+                    text = "${selectedDate.format(dateFormatter)} · $selectedHabitsLogged of ${habitsWithLogs.size} habits",
                     style = TesseraType.MicroAxis,
                     color = colors.textSecondary
                 )
