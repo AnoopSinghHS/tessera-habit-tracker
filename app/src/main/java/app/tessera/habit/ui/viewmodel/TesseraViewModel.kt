@@ -175,7 +175,10 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
     fun cycleThemeMode() {
         val next = when (controlState.value.themeMode) {
             ThemeMode.ALABASTER_LIGHT -> ThemeMode.OBSIDIAN_DARK
-            ThemeMode.OBSIDIAN_DARK -> ThemeMode.ALABASTER_LIGHT
+            ThemeMode.OBSIDIAN_DARK -> ThemeMode.ARRAKIS_DUNE
+            ThemeMode.ARRAKIS_DUNE -> ThemeMode.DEEP_SPACE
+            ThemeMode.DEEP_SPACE -> ThemeMode.TATOOINE_DUSK
+            ThemeMode.TATOOINE_DUSK -> ThemeMode.SYSTEM
             ThemeMode.SYSTEM -> ThemeMode.ALABASTER_LIGHT
         }
         setThemeMode(next)
