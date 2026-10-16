@@ -107,7 +107,7 @@ private fun TesseraRootApp(viewModel: TesseraViewModel) {
     val colors = TesseraTheme.colors
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
-    var currentTab by rememberSaveable { mutableStateOf(TesseraTab.RITUALS) }
+    var currentTab by rememberSaveable { mutableStateOf(TesseraTab.TODAY) }
 
     LaunchedEffect(uiState.statusMessage) {
         val msg = uiState.statusMessage
