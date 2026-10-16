@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="140dp"
+    android:viewportWidth="320"
+    android:viewportHeight="140">
+    <!-- Card Background -->
+    <path
+        android:fillColor="#0A0C10"
+        android:strokeColor="#1F242D"
+        android:strokeWidth="1.5"
+        android:pathData="M20,2L300,2A18,18 0,0 1,318 20L318,120A18,18 0,0 1,300 138L20,138A18,18 0,0 1,2 120L2,20A18,18 0,0 1,20 2z" />
+    <!-- Top Header Indicator Bar -->
+    <path
+        android:fillColor="#34D399"
+        android:pathData="M18,16h12v12h-12z" />
+    <path
+        android:fillColor="#F3F4F6"
+        android:pathData="M38,18h96v8h-96z" />
+    <!-- Check-in Button Preview -->
+    <path
+        android:fillColor="#34D399"
+        android:pathData="M276,12h26v26h-26z" />
+    <!-- Sample Heatmap Squares Preview Row 1 -->
+    <path
+        android:fillColor="#166544"
+        android:pathData="M18,52h12v12h-12z M34,52h12v12h-12z M66,52h12v12h-12z M98,52h12v12h-12z M130,52h12v12h-12z M162,52h12v12h-12z M194,52h12v12h-12z M226,52h12v12h-12z M258,52h12v12h-12z" />
+    <path
+        android:fillColor="#34D399"
+        android:pathData="M50,52h12v12h-12z M82,52h12v12h-12z M114,52h12v12h-12z M178,52h12v12h-12z M210,52h12v12h-12z M242,52h12v12h-12z M274,52h12v12h-12z M290,52h12v12h-12z" />
+    <!-- Row 2 -->
+    <path
+        android:fillColor="#229965"
+        android:pathData="M18,68h12v12h-12z M50,68h12v12h-12z M82,68h12v12h-12z M114,68h12v12h-12z M146,68h12v12h-12z M178,68h12v12h-12z M210,68h12v12h-12z M258,68h12v12h-12z M290,68h12v12h-12z" />
+    <path
+        android:fillColor="#34D399"
+        android:pathData="M34,68h12v12h-12z M66,68h12v12h-12z M130,68h12v12h-12z M162,68h12v12h-12z M226,68h12v12h-12z M242,68h12v12h-12z M274,68h12v12h-12z" />
+    <!-- Row 3 -->
+    <path
+        android:fillColor="#181B22"
+        android:pathData="M18,84h12v12h-12z M98,84h12v12h-12z M194,84h12v12h-12z" />
+    <path
+        android:fillColor="#34D399"
+        android:pathData="M34,84h12v12h-12z M50,84h12v12h-12z M66,84h12v12h-12z M82,84h12v12h-12z M114,84h12v12h-12z M130,84h12v12h-12z M146,84h12v12h-12z M162,84h12v12h-12z M178,84h12v12h-12z M210,84h12v12h-12z M226,84h12v12h-12z M242,84h12v12h-12z M258,84h12v12h-12z M274,84h12v12h-12z M290,84h12v12h-12z" />
+    <!-- Row 4 -->
+    <path
+        android:fillColor="#229965"
+        android:pathData="M18,100h12v12h-12z M34,100h12v12h-12z M66,100h12v12h-12z M98,100h12v12h-12z M130,100h12v12h-12z M162,100h12v12h-12z M194,100h12v12h-12z M226,100h12v12h-12z M258,100h12v12h-12z" />
+    <path
+        android:fillColor="#34D399"
+        android:pathData="M50,100h12v12h-12z M82,100h12v12h-12z M114,100h12v12h-12z M146,100h12v12h-12z M178,100h12v12h-12z M210,100h12v12h-12z M242,100h12v12h-12z M274,100h12v12h-12z M290,100h12v12h-12z" />
+</vector>

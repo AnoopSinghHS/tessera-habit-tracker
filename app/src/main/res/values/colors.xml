@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Obsidian Dark Theme Tokens -->
+    <color name="surface_abyss">#07080B</color>
+    <color name="surface_card">#101217</color>
+    <color name="surface_elevated">#161920</color>
+    <color name="surface_recessed">#181B22</color>
+    <color name="border_hairline">#1F242D</color>
+    <color name="border_specular">#2C3340</color>
+    <color name="text_primary">#F3F4F6</color>
+    <color name="text_secondary">#8A919E</color>
+    <color name="text_muted">#525866</color>
+
+    <!-- Warm Alabaster Light Theme Tokens -->
+    <color name="surface_abyss_light">#F6F5F2</color>
+    <color name="surface_card_light">#FFFFFF</color>
+    <color name="surface_elevated_light">#EAE8E1</color>
+    <color name="surface_recessed_light">#EDEBE4</color>
+    <color name="border_hairline_light">#E2DFD7</color>
+    <color name="text_primary_light">#111317</color>
+    <color name="text_secondary_light">#686D76</color>
+    <color name="text_muted_light">#9CA3AF</color>
+
+    <!-- Primary Accent Tokens -->
+    <color name="emerald_level_1">#0E3A2A</color>
+    <color name="emerald_level_2">#166544</color>
+    <color name="emerald_level_3">#229965</color>
+    <color name="emerald_level_4">#34D399</color>
+    <color name="emerald_on_accent">#052E1E</color>
+
+    <color name="ic_launcher_background">#07080B</color>
+</resources>

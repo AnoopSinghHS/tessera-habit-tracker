@@ -1,0 +1,85 @@
+name: Android CI & Release APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Test, Assemble & Release S26 Ultra APKs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: "gradle"
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Assemble Debug & Signed Release APKs
+        run: ./gradlew assembleDebug assembleRelease --stacktrace
+
+      - name: Stage & Rename APKs for Samsung Galaxy S26 Ultra
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk dist/tessera-s26-ultra-release.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/tessera-s26-ultra-debug.apk
+          ls -lh dist/
+
+      - name: Upload Release APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tessera-s26-ultra-release-apk
+          path: dist/tessera-s26-ultra-release.apk
+          if-no-files-found: error
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tessera-s26-ultra-debug-apk
+          path: dist/tessera-s26-ultra-debug.apk
+          if-no-files-found: error
+
+      - name: Publish GitHub Release (v1.0.0)
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: "Tessera v1.0.0 — Samsung Galaxy S26 Ultra Edition"
+          body: |
+            ## Tessera v1.0.0 — Architectural Habit Matrix & Telemetry Engine
+
+            Built for **Samsung Galaxy S26 Ultra** (One UI 8 / Android 15+, QHD+ Dynamic AMOLED 2X 120Hz).
+
+            ### Included Installable APKs
+            - **`tessera-s26-ultra-release.apk`**: Signed, production-ready Release APK (install directly on your Galaxy S26 Ultra).
+            - **`tessera-s26-ultra-debug.apk`**: Signed Debug APK with developer inspection support.
+
+            ### Highlights
+            - **GitHub Contribution Heatmaps**: 120Hz Compose Canvas 28-week cards, 2-column Bento grid mode, and 52-week full-year explorer with 5-stop quartile intensity shading.
+            - **One UI Home Screen Widgets**: 4×2 Wide (18-week) & 2×2 Compact (8-week) native Canvas bitmap widgets with instant 1-tap check-in and live theme/ritual reconfiguration.
+            - **Programmatic Automation API**: Exported `app.tessera.habit.ACTION_LOG_HABIT` BroadcastReceiver and `tessera://` URI deep links for Tasker, Bixby Modes & Routines, MacroDroid, and ADB.
+            - **Offline-First Room Vault**: Pre-seeded 20-week showcase portfolio + lossless JSON backup & restore.
+          files: |
+            dist/tessera-s26-ultra-release.apk
+            dist/tessera-s26-ultra-debug.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

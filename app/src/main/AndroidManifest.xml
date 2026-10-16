@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:name=".TesseraApp"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Tessera"
+        tools:targetApi="35">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.Tessera"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Deep Links: tessera://log?... and tessera://habit/<slug> -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="tessera" />
+            </intent-filter>
+        </activity>
+
+        <!-- Widget Configuration Activity -->
+        <activity
+            android:name=".widget.HabitWidgetConfigureActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Tessera">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <!-- 4x2 Wide Heatmap Widget Provider -->
+        <receiver
+            android:name=".widget.HabitHeatmapWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_wide_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/habit_heatmap_widget_info" />
+        </receiver>
+
+        <!-- 2x2 Compact Heatmap Widget Provider -->
+        <receiver
+            android:name=".widget.HabitCompactWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_compact_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/habit_compact_widget_info" />
+        </receiver>
+
+        <!-- Widget Interactive Check-In Receiver -->
+        <receiver
+            android:name=".widget.HabitWidgetActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="app.tessera.habit.action.WIDGET_CHECK_IN" />
+                <action android:name="app.tessera.habit.widget.ACTION_WIDGET_CHECK_IN" />
+                <action android:name="app.tessera.habit.widget.ACTION_REFRESH_ALL_WIDGETS" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Exported Programmatic Inter-App Broadcast API Receiver -->
+        <receiver
+            android:name=".api.HabitApiReceiver"
+            android:exported="true"
+            tools:ignore="ExportedReceiver">
+            <intent-filter>
+                <action android:name="app.tessera.habit.ACTION_LOG_HABIT" />
+                <action android:name="app.tessera.action.LOG_HABIT" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+
+</manifest>

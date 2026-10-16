@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Tessera</string>
+    <string name="widget_wide_name">Tessera · 18-Week Matrix (4×2)</string>
+    <string name="widget_wide_description">Architectural 18-week GitHub contribution heatmap with instant 1-tap check-in.</string>
+    <string name="widget_compact_name">Tessera · Compact Tile (2×2)</string>
+    <string name="widget_compact_description">Compact 8-week ritual heatmap with streak badge and 1-tap check-in.</string>
+    <string name="widget_configure_title">Configure Ritual Widget</string>
+    <string name="widget_heatmap_content_desc">Habit contribution heatmap matrix</string>
+    <string name="widget_checkin_content_desc">Log habit completion for today</string>
+</resources>

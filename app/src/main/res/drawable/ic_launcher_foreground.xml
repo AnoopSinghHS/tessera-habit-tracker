@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer subtle container frame inside safe zone (26..82) -->
+    <path
+        android:fillColor="#12151C"
+        android:strokeColor="#262C3A"
+        android:strokeWidth="1.2"
+        android:pathData="M30,26L78,26A4,4 0,0 1,82 30L82,78A4,4 0,0 1,78 82L30,82A4,4 0,0 1,26 78L26,30A4,4 0,0 1,30 26z" />
+
+    <!-- Row 1: 3x3 Tessera Mosaic Tiles (12x12 tiles, 4dp gap) -->
+    <!-- Tile (0,0): Level 1 Deep Emerald -->
+    <path
+        android:fillColor="#0E3A2A"
+        android:pathData="M33,31L41,31A2,2 0,0 1,43 33L43,41A2,2 0,0 1,41 43L33,43A2,2 0,0 1,31 41L31,33A2,2 0,0 1,33 31z" />
+    <!-- Tile (0,1): Level 3 Vibrant Emerald -->
+    <path
+        android:fillColor="#229965"
+        android:pathData="M50,31L58,31A2,2 0,0 1,60 33L60,41A2,2 0,0 1,58 43L50,43A2,2 0,0 1,48 41L48,33A2,2 0,0 1,50 31z" />
+    <!-- Tile (0,2): Level 2 Mid Emerald -->
+    <path
+        android:fillColor="#166544"
+        android:pathData="M67,31L75,31A2,2 0,0 1,77 33L77,41A2,2 0,0 1,75 43L67,43A2,2 0,0 1,65 41L65,33A2,2 0,0 1,67 31z" />
+
+    <!-- Row 2 -->
+    <!-- Tile (1,0): Level 2 Mid Emerald -->
+    <path
+        android:fillColor="#166544"
+        android:pathData="M33,48L41,48A2,2 0,0 1,43 50L43,58A2,2 0,0 1,41 60L33,60A2,2 0,0 1,31 58L31,50A2,2 0,0 1,33 48z" />
+    <!-- Tile (1,1): Level 4 Luminous Emerald Centerpiece -->
+    <path
+        android:fillColor="#34D399"
+        android:pathData="M50,48L58,48A2,2 0,0 1,60 50L60,58A2,2 0,0 1,58 60L50,60A2,2 0,0 1,48 58L48,50A2,2 0,0 1,50 48z" />
+    <!-- Tile (1,2): Level 4 Luminous Emerald -->
+    <path
+        android:fillColor="#34D399"
+        android:pathData="M67,48L75,48A2,2 0,0 1,77 50L77,58A2,2 0,0 1,75 60L67,60A2,2 0,0 1,65 58L65,50A2,2 0,0 1,67 48z" />
+
+    <!-- Row 3 -->
+    <!-- Tile (2,0): Level 0 Recessed Tile -->
+    <path
+        android:fillColor="#1B1F2A"
+        android:pathData="M33,65L41,65A2,2 0,0 1,43 67L43,75A2,2 0,0 1,41 77L33,77A2,2 0,0 1,31 75L31,67A2,2 0,0 1,33 65z" />
+    <!-- Tile (2,1): Level 3 Vibrant Emerald -->
+    <path
+        android:fillColor="#229965"
+        android:pathData="M50,65L58,65A2,2 0,0 1,60 67L60,75A2,2 0,0 1,58 77L50,77A2,2 0,0 1,48 75L48,67A2,2 0,0 1,50 65z" />
+    <!-- Tile (2,2): Today Active Specular Tile (Level 4 + Crisp White Highlight) -->
+    <path
+        android:fillColor="#34D399"
+        android:strokeColor="#F3F4F6"
+        android:strokeWidth="1.2"
+        android:pathData="M67,65L75,65A2,2 0,0 1,77 67L77,75A2,2 0,0 1,75 77L67,77A2,2 0,0 1,65 75L65,67A2,2 0,0 1,67 65z" />
+</vector>
