@@ -21,7 +21,7 @@ object DemoSeedGenerator {
             HabitEntity(
                 slug = "deep-work",
                 title = "Deep Work Session",
-                description = "90m uninterrupted architecture & coding blocks",
+                description = "After morning espresso, I will close tabs and code for 90m",
                 category = "CRAFT",
                 iconKey = "bolt",
                 colorKey = "emerald",
@@ -29,12 +29,17 @@ object DemoSeedGenerator {
                 targetPerDay = 2,
                 weeklyGoalDays = 5,
                 sortOrder = 0,
+                cueAnchor = "Pour morning pour-over espresso",
+                temptationReward = "Enjoy hot artisanal tea while browsing tech newsletters",
+                microStarter = "Open IDE and write single function declaration for 120s",
+                identityStatement = "I am a disciplined craftsman building durable systems",
+                ritualTime = "FOCUS",
                 createdAt = nowMs - 140L * 86_400_000L
             ),
             HabitEntity(
                 slug = "strength-training",
                 title = "Strength Training",
-                description = "Compound lifts & progressive overload session",
+                description = "After putting on workout shoes, I will step onto gym floor",
                 category = "BODY",
                 iconKey = "fitness",
                 colorKey = "cyan",
@@ -42,12 +47,17 @@ object DemoSeedGenerator {
                 targetPerDay = 1,
                 weeklyGoalDays = 4,
                 sortOrder = 1,
+                cueAnchor = "Tie running laces by the front door",
+                temptationReward = "Drink cold chilled electrolyte smoothie right after",
+                microStarter = "Perform 5 bodyweight squats and stretch wrists",
+                identityStatement = "I am an athlete cultivating physical longevity",
+                ritualTime = "DAWN",
                 createdAt = nowMs - 140L * 86_400_000L
             ),
             HabitEntity(
                 slug = "read-30-pages",
                 title = "Read 30 Pages",
-                description = "Non-fiction, systems engineering, or philosophy before bed",
+                description = "After dinner counter is wiped, I will open physical book",
                 category = "MIND",
                 iconKey = "book",
                 colorKey = "violet",
@@ -55,12 +65,17 @@ object DemoSeedGenerator {
                 targetPerDay = 1,
                 weeklyGoalDays = 7,
                 sortOrder = 2,
+                cueAnchor = "Wipe kitchen counter and turn on reading lamp",
+                temptationReward = "Listen to 15m of relaxing ambient binaural sleep beats",
+                microStarter = "Open book to bookmark and read the first paragraph",
+                identityStatement = "I am a perpetual student expanding intellectual horizon",
+                ritualTime = "TWILIGHT",
                 createdAt = nowMs - 140L * 86_400_000L
             ),
             HabitEntity(
                 slug = "hydration",
                 title = "Hydration 2.5L",
-                description = "Electrolytes + 4x 600ml insulated flasks throughout day",
+                description = "After waking, drink first 600ml flask with mineral pinch",
                 category = "HEALTH",
                 iconKey = "water",
                 colorKey = "amber",
@@ -68,6 +83,11 @@ object DemoSeedGenerator {
                 targetPerDay = 4,
                 weeklyGoalDays = 7,
                 sortOrder = 3,
+                cueAnchor = "Step into kitchen upon waking up",
+                temptationReward = "Log morning hydration checkmark on S26 Ultra home widget",
+                microStarter = "Drink 3 continuous gulps of water",
+                identityStatement = "I treat my body with biological respect",
+                ritualTime = "DAWN",
                 createdAt = nowMs - 140L * 86_400_000L
             )
         )

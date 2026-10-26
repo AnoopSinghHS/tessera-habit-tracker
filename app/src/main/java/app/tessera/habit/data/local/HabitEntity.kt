@@ -25,6 +25,11 @@ data class HabitEntity(
     val weeklyGoalDays: Int = 7,
     val isArchived: Boolean = false,
     val sortOrder: Int = 0,
+    val cueAnchor: String = "",
+    val temptationReward: String = "",
+    val microStarter: String = "",
+    val identityStatement: String = "",
+    val ritualTime: String = "DAWN",
     val createdAt: Long = System.currentTimeMillis()
 ) {
     companion object {

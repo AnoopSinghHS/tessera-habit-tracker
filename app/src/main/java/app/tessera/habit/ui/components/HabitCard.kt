@@ -142,10 +142,16 @@ fun HabitCard(
                         }
                     }
 
-                    if (habit.description.isNotBlank()) {
+                    val subtitleText = when {
+                        habit.cueAnchor.isNotBlank() -> "After I ${habit.cueAnchor}"
+                        habit.microStarter.isNotBlank() -> "2m: ${habit.microStarter}"
+                        habit.description.isNotBlank() -> habit.description
+                        else -> ""
+                    }
+                    if (subtitleText.isNotBlank()) {
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = habit.description,
+                            text = subtitleText,
                             style = TesseraType.CardSubtitle,
                             color = colors.textSecondary,
                             maxLines = 1,

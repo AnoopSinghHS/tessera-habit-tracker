@@ -54,6 +54,7 @@ import app.tessera.habit.ui.screens.ApiAndSettingsScreen
 import app.tessera.habit.ui.screens.DashboardScreen
 import app.tessera.habit.ui.screens.HabitDetailSheet
 import app.tessera.habit.ui.screens.HabitEditorDialog
+import app.tessera.habit.ui.screens.RitualChamberSheet
 import app.tessera.habit.ui.theme.HabitPalette
 import app.tessera.habit.ui.theme.TesseraTheme
 import app.tessera.habit.ui.theme.TesseraType
@@ -165,6 +166,7 @@ private fun TesseraRootApp(viewModel: TesseraViewModel) {
                             onCheckInHabit = { habitId -> viewModel.smartCheckIn(habitId) },
                             onOpenHabitDetail = { habitId -> viewModel.openHabitDetail(habitId) },
                             onOpenCreateHabit = { viewModel.openCreateHabitDialog() },
+                            onOpenRitualChamber = { track -> viewModel.openRitualChamber(track) },
                             onSelectCategory = { cat -> viewModel.selectCategory(cat) },
                             onToggleViewMode = { viewModel.toggleViewMode() },
                             onToggleTheme = { viewModel.cycleThemeMode() },
@@ -242,12 +244,30 @@ private fun TesseraRootApp(viewModel: TesseraViewModel) {
         )
     }
 
-    // Create / Edit Ritual Modal Sheet
+    // Create / Edit Ritual Modal Sheet with In-Memory Draft Preservation
     if (uiState.isEditorOpen) {
         HabitEditorDialog(
-            initialHabit = uiState.editingHabit,
+            draft = uiState.editorDraft,
+            isEditing = uiState.editingHabit != null && (uiState.editingHabit?.id ?: 0L) > 0L,
+            onUpdateDraft = { draft -> viewModel.updateDraft(draft) },
+            onDiscardDraft = { viewModel.discardDraft() },
             onDismiss = { viewModel.closeHabitEditor() },
             onSaveHabit = { habit -> viewModel.saveHabit(habit) }
+        )
+    }
+
+    // Fabulous Guided Ritual Chamber Flow Sheet
+    if (uiState.isRitualChamberOpen) {
+        RitualChamberSheet(
+            activeHabits = uiState.activeHabits,
+            activeRitualTime = uiState.activeRitualTime,
+            onSelectRitualTime = { track -> viewModel.setActiveRitualTime(track) },
+            onCheckInHabit = { habitId -> viewModel.smartCheckIn(habitId) },
+            onOpenCreateHabit = {
+                viewModel.closeRitualChamber()
+                viewModel.openCreateHabitDialog()
+            },
+            onDismiss = { viewModel.closeRitualChamber() }
         )
     }
 }

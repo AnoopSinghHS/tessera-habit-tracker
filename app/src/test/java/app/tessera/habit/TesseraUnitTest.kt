@@ -246,4 +246,36 @@ class TesseraUnitTest {
         assertEquals(DayOfWeek.MONDAY, monday.dayOfWeek)
         assertEquals(LocalDate.of(2026, 10, 12), monday)
     }
+
+    @Test
+    fun `HabitDraft correctly preserves all 4 Laws of Atomic Habits and converts to HabitEntity`() {
+        val draft = app.tessera.habit.ui.viewmodel.HabitDraft(
+            title = "Write 500 Words",
+            category = "Craft",
+            cueAnchor = "Pour morning coffee",
+            temptationReward = "Drink artisanal espresso",
+            microStarter = "Write 1 single sentence",
+            identityStatement = "I am a disciplined writer who publishes daily",
+            ritualTime = "DAWN",
+            hasUnsavedChanges = true
+        )
+
+        val entity = draft.toHabitEntity()
+        assertEquals("write-500-words", entity.slug)
+        assertEquals("Write 500 Words", entity.title)
+        assertEquals("Pour morning coffee", entity.cueAnchor)
+        assertEquals("Drink artisanal espresso", entity.temptationReward)
+        assertEquals("Write 1 single sentence", entity.microStarter)
+        assertEquals("I am a disciplined writer who publishes daily", entity.identityStatement)
+        assertEquals("DAWN", entity.ritualTime)
+
+        val hydratedDraft = app.tessera.habit.ui.viewmodel.HabitDraft.fromHabit(entity)
+        assertEquals(draft.title, hydratedDraft.title)
+        assertEquals(draft.cueAnchor, hydratedDraft.cueAnchor)
+        assertEquals(draft.temptationReward, hydratedDraft.temptationReward)
+        assertEquals(draft.microStarter, hydratedDraft.microStarter)
+        assertEquals(draft.identityStatement, hydratedDraft.identityStatement)
+        assertEquals(draft.ritualTime, hydratedDraft.ritualTime)
+        assertFalse(hydratedDraft.hasUnsavedChanges)
+    }
 }

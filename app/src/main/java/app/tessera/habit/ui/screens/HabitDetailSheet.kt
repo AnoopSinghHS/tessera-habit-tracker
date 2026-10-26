@@ -234,7 +234,31 @@ fun HabitDetailSheet(
                         }
                     }
 
-                    // Habit Stacking Cue
+                    // Identity Statement (Law 4)
+                    if (habit.identityStatement.isNotBlank()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(colors.surfaceRecessed)
+                                .border(1.dp, palette.level3.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                text = "IDENTITY ANCHOR (LAW 4)",
+                                style = TesseraType.MicroAxis,
+                                color = palette.colorForLevel(4, colors.isDark)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "“${habit.identityStatement}”",
+                                style = TesseraType.CardTitle.copy(fontSize = 14.sp),
+                                color = colors.textPrimary
+                            )
+                        }
+                    }
+
+                    // Habit Stacking Cue (Law 1)
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -249,13 +273,15 @@ fun HabitDetailSheet(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = if (habit.description.isNotBlank()) habit.description else "After my anchor routine, I will practice ${habit.title}.",
+                            text = if (habit.cueAnchor.isNotBlank()) "After I ${habit.cueAnchor}, I will ${habit.title}."
+                            else if (habit.description.isNotBlank()) habit.description
+                            else "After my anchor routine, I will practice ${habit.title}.",
                             style = TesseraType.CardTitle.copy(fontSize = 14.sp),
                             color = colors.textPrimary
                         )
                     }
 
-                    // 2-Minute Micro Rule & Grace Shield
+                    // 2-Minute Micro Rule & Temptation Reward / Ritual Track
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -268,13 +294,14 @@ fun HabitDetailSheet(
                                 .padding(12.dp)
                         ) {
                             Text(
-                                text = "2-MIN RULE (LAW 3)",
+                                text = "2-MIN GATEWAY (LAW 3)",
                                 style = TesseraType.MicroAxis,
                                 color = colors.textMuted
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Show up for 2 minutes to cast a vote for your identity.",
+                                text = if (habit.microStarter.isNotBlank()) habit.microStarter
+                                else "Show up for 2 minutes to cast a vote for your identity.",
                                 style = TesseraType.CardSubtitle,
                                 color = colors.textSecondary
                             )
@@ -287,13 +314,14 @@ fun HabitDetailSheet(
                                 .padding(12.dp)
                         ) {
                             Text(
-                                text = "NEVER MISS TWICE",
+                                text = "TEMPTATION & TRACK",
                                 style = TesseraType.MicroAxis,
                                 color = colors.textMuted
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Missing once is an accident. Missing twice is a new habit.",
+                                text = if (habit.temptationReward.isNotBlank()) "${habit.ritualTime}: ${habit.temptationReward}"
+                                else "${habit.ritualTime} Ritual Track · Never Miss Twice",
                                 style = TesseraType.CardSubtitle,
                                 color = colors.textSecondary
                             )

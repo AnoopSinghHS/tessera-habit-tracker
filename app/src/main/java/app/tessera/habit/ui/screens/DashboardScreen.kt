@@ -53,12 +53,18 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.NightsStay
+import androidx.compose.material.icons.rounded.WbSunny
+import java.time.LocalTime
+
 @Composable
 fun DashboardScreen(
     uiState: TesseraUiState,
     onCheckInHabit: (Long) -> Unit,
     onOpenHabitDetail: (Long) -> Unit,
     onOpenCreateHabit: () -> Unit,
+    onOpenRitualChamber: (String) -> Unit,
     onSelectCategory: (String) -> Unit,
     onToggleViewMode: () -> Unit,
     onToggleTheme: () -> Unit,
@@ -87,6 +93,106 @@ fun DashboardScreen(
                 onToggleTheme = onToggleTheme,
                 onOpenCreateHabit = onOpenCreateHabit
             )
+        }
+
+        // 2. Fabulous Guided Ritual Flow Banner
+        if (uiState.activeHabits.isNotEmpty()) {
+            item(key = "guided_ritual_card") {
+                val currentHour = remember { LocalTime.now().hour }
+                val recommendedTrack = when {
+                    currentHour < 12 -> "DAWN"
+                    currentHour < 18 -> "FOCUS"
+                    else -> "TWILIGHT"
+                }
+                val trackTitle = when (recommendedTrack) {
+                    "DAWN" -> "Dawn Ritual"
+                    "FOCUS" -> "Focus Ritual"
+                    else -> "Twilight Ritual"
+                }
+                val trackHabits = uiState.activeHabits.filter {
+                    it.habit.ritualTime.equals(recommendedTrack, ignoreCase = true)
+                }
+                val pendingInTrack = trackHabits.filter { it.countForDate(today) < it.habit.targetPerDay }
+                val isTrackFinished = trackHabits.isNotEmpty() && pendingInTrack.isEmpty()
+
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { onOpenRitualChamber(recommendedTrack) },
+                    shape = RoundedCornerShape(16.dp),
+                    color = colors.surfaceCard,
+                    border = BorderStroke(1.dp, HabitPalette.AmberWarm.level3.copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(RoundedCornerShape(11.dp))
+                                    .background(HabitPalette.AmberWarm.colorForLevel(1, colors.isDark)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = when (recommendedTrack) {
+                                        "DAWN" -> Icons.Rounded.WbSunny
+                                        "FOCUS" -> Icons.Rounded.Bolt
+                                        else -> Icons.Rounded.NightsStay
+                                    },
+                                    contentDescription = null,
+                                    tint = HabitPalette.AmberWarm.colorForLevel(4, colors.isDark),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            Column {
+                                Text(
+                                    text = "FABULOUS GUIDED RITUAL",
+                                    style = TesseraType.MicroAxis,
+                                    color = HabitPalette.AmberWarm.colorForLevel(4, colors.isDark)
+                                )
+                                Text(
+                                    text = trackTitle,
+                                    style = TesseraType.CardTitle,
+                                    color = colors.textPrimary
+                                )
+                                Text(
+                                    text = when {
+                                        trackHabits.isEmpty() -> "Start step-by-step guided focus chamber"
+                                        isTrackFinished -> "All ${trackHabits.size} rituals completed today · Tap to review"
+                                        else -> "${pendingInTrack.size} of ${trackHabits.size} rituals remaining · 2m timer"
+                                    },
+                                    style = TesseraType.CardSubtitle,
+                                    color = colors.textSecondary
+                                )
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(HabitPalette.AmberWarm.colorForLevel(4, colors.isDark))
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = if (isTrackFinished) "REVIEW" else "BEGIN →",
+                                style = TesseraType.TelemetryBadge,
+                                color = HabitPalette.AmberWarm.onAccentFor(colors.isDark)
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         // 2. Subtle Category Filter Strip

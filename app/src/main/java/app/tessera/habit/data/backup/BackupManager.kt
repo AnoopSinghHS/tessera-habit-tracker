@@ -53,6 +53,11 @@ class BackupManager(
                     weeklyGoalDays = item.habit.weeklyGoalDays,
                     isArchived = item.habit.isArchived,
                     sortOrder = item.habit.sortOrder,
+                    cueAnchor = item.habit.cueAnchor,
+                    temptationReward = item.habit.temptationReward,
+                    microStarter = item.habit.microStarter,
+                    identityStatement = item.habit.identityStatement,
+                    ritualTime = item.habit.ritualTime,
                     createdAt = item.habit.createdAt,
                     logs = item.logs
                         .sortedBy { it.dateEpochDay }
@@ -109,6 +114,11 @@ class BackupManager(
                         weeklyGoalDays = dto.weeklyGoalDays,
                         isArchived = dto.isArchived,
                         sortOrder = dto.sortOrder,
+                        cueAnchor = dto.cueAnchor,
+                        temptationReward = dto.temptationReward,
+                        microStarter = dto.microStarter,
+                        identityStatement = dto.identityStatement,
+                        ritualTime = dto.ritualTime.ifBlank { "DAWN" },
                         createdAt = dto.createdAt
                     )
                 )

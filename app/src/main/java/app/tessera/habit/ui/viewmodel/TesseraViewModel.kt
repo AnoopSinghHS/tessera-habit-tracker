@@ -28,6 +28,70 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
+data class HabitDraft(
+    val habitId: Long = 0L,
+    val title: String = "",
+    val slug: String = "",
+    val slugManuallyEdited: Boolean = false,
+    val description: String = "",
+    val category: String = "Focus",
+    val iconKey: String = "bolt",
+    val colorKey: String = "emerald",
+    val targetPerDay: Int = 1,
+    val unitLabel: String = "times",
+    val weeklyGoalDays: Int = 7,
+    val cueAnchor: String = "",
+    val temptationReward: String = "",
+    val microStarter: String = "",
+    val identityStatement: String = "",
+    val ritualTime: String = "DAWN",
+    val hasUnsavedChanges: Boolean = false
+) {
+    fun toHabitEntity(): HabitEntity {
+        val finalTitle = title.trim().ifEmpty { "Daily Ritual" }
+        val finalSlug = slug.trim().ifEmpty { HabitEntity.generateSlug(finalTitle) }
+        return HabitEntity(
+            id = habitId,
+            slug = finalSlug,
+            title = finalTitle,
+            description = description.trim(),
+            category = category.trim().ifEmpty { "Focus" },
+            iconKey = iconKey,
+            colorKey = colorKey,
+            unitLabel = unitLabel.trim().ifEmpty { "times" },
+            targetPerDay = targetPerDay.coerceIn(1, 24),
+            weeklyGoalDays = weeklyGoalDays.coerceIn(1, 7),
+            cueAnchor = cueAnchor.trim(),
+            temptationReward = temptationReward.trim(),
+            microStarter = microStarter.trim(),
+            identityStatement = identityStatement.trim(),
+            ritualTime = ritualTime.ifBlank { "DAWN" }
+        )
+    }
+
+    companion object {
+        fun fromHabit(habit: HabitEntity): HabitDraft = HabitDraft(
+            habitId = habit.id,
+            title = habit.title,
+            slug = habit.slug,
+            slugManuallyEdited = true,
+            description = habit.description,
+            category = habit.category,
+            iconKey = habit.iconKey,
+            colorKey = habit.colorKey,
+            targetPerDay = habit.targetPerDay,
+            unitLabel = habit.unitLabel,
+            weeklyGoalDays = habit.weeklyGoalDays,
+            cueAnchor = habit.cueAnchor,
+            temptationReward = habit.temptationReward,
+            microStarter = habit.microStarter,
+            identityStatement = habit.identityStatement,
+            ritualTime = habit.ritualTime,
+            hasUnsavedChanges = false
+        )
+    }
+}
+
 data class TesseraUiState(
     val allHabits: List<HabitWithLogs> = emptyList(),
     val activeHabits: List<HabitWithLogs> = emptyList(),
@@ -40,6 +104,9 @@ data class TesseraUiState(
     val selectedHabitId: Long? = null,
     val isEditorOpen: Boolean = false,
     val editingHabit: HabitEntity? = null,
+    val editorDraft: HabitDraft = HabitDraft(),
+    val isRitualChamberOpen: Boolean = false,
+    val activeRitualTime: String = "DAWN",
     val lastApiEventSummary: String = "Ready · Listening on app.tessera.habit.ACTION_LOG_HABIT",
     val statusMessage: String? = null
 ) {
@@ -54,6 +121,9 @@ private data class LocalUiControlState(
     val selectedHabitId: Long? = null,
     val isEditorOpen: Boolean = false,
     val editingHabit: HabitEntity? = null,
+    val editorDraft: HabitDraft = HabitDraft(),
+    val isRitualChamberOpen: Boolean = false,
+    val activeRitualTime: String = "DAWN",
     val lastApiEventSummary: String = "Ready · Listening on app.tessera.habit.ACTION_LOG_HABIT",
     val statusMessage: String? = null
 )
@@ -126,6 +196,9 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
             selectedHabitId = ctrl.selectedHabitId,
             isEditorOpen = ctrl.isEditorOpen,
             editingHabit = ctrl.editingHabit,
+            editorDraft = ctrl.editorDraft,
+            isRitualChamberOpen = ctrl.isRitualChamberOpen,
+            activeRitualTime = ctrl.activeRitualTime,
             lastApiEventSummary = ctrl.lastApiEventSummary,
             statusMessage = ctrl.statusMessage
         )
@@ -135,6 +208,9 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
         initialValue = TesseraUiState(
             isCompactBentoView = controlState.value.isCompactBentoView,
             themeMode = controlState.value.themeMode,
+            editorDraft = controlState.value.editorDraft,
+            isRitualChamberOpen = controlState.value.isRitualChamberOpen,
+            activeRitualTime = controlState.value.activeRitualTime,
             lastApiEventSummary = controlState.value.lastApiEventSummary
         )
     )
@@ -202,10 +278,17 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun openCreateHabitDialog() {
-        controlState.update {
-            it.copy(
+        controlState.update { current ->
+            // If the user already had typed an in-memory draft (e.g. from an accidental swipe-down), keep it!
+            val draftToUse = if (current.editorDraft.hasUnsavedChanges && current.editingHabit == null) {
+                current.editorDraft
+            } else {
+                HabitDraft()
+            }
+            current.copy(
                 isEditorOpen = true,
-                editingHabit = null
+                editingHabit = null,
+                editorDraft = draftToUse
             )
         }
     }
@@ -214,17 +297,53 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
         controlState.update {
             it.copy(
                 isEditorOpen = true,
-                editingHabit = habit
+                editingHabit = habit,
+                editorDraft = HabitDraft.fromHabit(habit)
+            )
+        }
+    }
+
+    fun updateDraft(draft: HabitDraft) {
+        controlState.update {
+            it.copy(editorDraft = draft.copy(hasUnsavedChanges = true))
+        }
+    }
+
+    fun discardDraft() {
+        controlState.update {
+            it.copy(
+                isEditorOpen = false,
+                editingHabit = null,
+                editorDraft = HabitDraft()
             )
         }
     }
 
     fun closeHabitEditor() {
+        // Accidental swipe down or tap outside closes the sheet, but PRESERVES editorDraft in memory!
+        controlState.update {
+            it.copy(isEditorOpen = false)
+        }
+    }
+
+    fun openRitualChamber(ritualTime: String = "DAWN") {
         controlState.update {
             it.copy(
-                isEditorOpen = false,
-                editingHabit = null
+                isRitualChamberOpen = true,
+                activeRitualTime = ritualTime
             )
+        }
+    }
+
+    fun closeRitualChamber() {
+        controlState.update {
+            it.copy(isRitualChamberOpen = false)
+        }
+    }
+
+    fun setActiveRitualTime(ritualTime: String) {
+        controlState.update {
+            it.copy(activeRitualTime = ritualTime)
         }
     }
 
@@ -236,6 +355,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
                 it.copy(
                     isEditorOpen = false,
                     editingHabit = null,
+                    editorDraft = HabitDraft(), // Clear draft on successful save
                     statusMessage = if (isNew) {
                         "Created ${habit.title}"
                     } else {
