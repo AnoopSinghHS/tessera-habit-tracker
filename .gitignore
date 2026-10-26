@@ -17,3 +17,8 @@ bin/
 gen/
 out/
 !gradle/wrapper/gradle-wrapper.jar
+.venv/
+node_modules/
+server/dist/
+server/data/
+web/dist/

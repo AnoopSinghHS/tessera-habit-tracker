@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  tessera-sync:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: tessera-sync-engine
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - JWT_SECRET=tessera-production-secret-dune-arrakis-key-8492049
+      - DATABASE_PATH=/app/data/tessera.db
+    volumes:
+      - tessera_data:/app/data
+
+volumes:
+  tessera_data:
+    driver: local
