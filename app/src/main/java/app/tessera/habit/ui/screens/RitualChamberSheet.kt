@@ -328,7 +328,7 @@ fun RitualChamberSheet(
 
                         Text(
                             text = "Ritual Completed",
-                            style = TesseraType.EditorialHeader,
+                            style = TesseraType.EditorialDateHeader,
                             color = colors.textPrimary,
                             textAlign = TextAlign.Center
                         )

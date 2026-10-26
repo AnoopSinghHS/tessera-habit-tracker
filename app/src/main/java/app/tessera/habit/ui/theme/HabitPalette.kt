@@ -158,6 +158,8 @@ object HabitPalette {
         lightOnAccent = Color(0xFFFCFBF9)
     )
 
+    val AmberWarm = CyberAmber
+
     val VioletNebula = HabitPaletteSpec(
         key = "violet",
         displayName = "Muted Fig",
