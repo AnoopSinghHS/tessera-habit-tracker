@@ -314,14 +314,14 @@ fun HabitDetailSheet(
                                 .padding(12.dp)
                         ) {
                             Text(
-                                text = "TEMPTATION & TRACK",
+                                text = "TEMPTATION BUNDLE (LAW 2)",
                                 style = TesseraType.MicroAxis,
                                 color = colors.textMuted
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = if (habit.temptationReward.isNotBlank()) "${habit.ritualTime}: ${habit.temptationReward}"
-                                else "${habit.ritualTime} Ritual Track · Never Miss Twice",
+                                text = if (habit.temptationReward.isNotBlank()) "Then I get to ${habit.temptationReward}"
+                                else "Never Miss Twice · Missing once is an accident.",
                                 style = TesseraType.CardSubtitle,
                                 color = colors.textSecondary
                             )

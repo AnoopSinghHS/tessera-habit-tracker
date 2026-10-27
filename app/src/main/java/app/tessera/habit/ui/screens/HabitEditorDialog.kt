@@ -201,7 +201,7 @@ fun HabitEditorDialog(
                                 color = colors.textPrimary
                             )
                             Text(
-                                text = "${draft.ritualTime} · ${draft.category.uppercase(Locale.US)} · ${draft.targetPerDay}x/day",
+                                text = "${draft.category.uppercase(Locale.US)} · #$effectiveSlug · ${draft.targetPerDay}x/day",
                                 style = TesseraType.MicroAxis,
                                 color = colors.textSecondary
                             )
@@ -426,57 +426,7 @@ fun HabitEditorDialog(
                 }
             }
 
-            // 6. FABULOUS RITUAL TRACK SELECTOR (Dawn, Focus, Twilight, Anytime)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("FABULOUS GUIDED RITUAL TRACK", style = TesseraType.MicroAxis, color = colors.textMuted)
-                val ritualTracks = listOf(
-                    Triple("DAWN", "Dawn (Morning)", Icons.Rounded.WbSunny),
-                    Triple("FOCUS", "Focus (Day)", Icons.Rounded.Bolt),
-                    Triple("TWILIGHT", "Twilight (Night)", Icons.Rounded.NightsStay),
-                    Triple("ANYTIME", "Anytime", Icons.Rounded.AutoAwesome)
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    ritualTracks.forEach { (trackKey, trackLabel, trackIcon) ->
-                        val isSelected = draft.ritualTime.equals(trackKey, ignoreCase = true)
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) selectedPalette.colorForLevel(4, colors.isDark) else colors.surfaceCard)
-                                .border(
-                                    1.dp,
-                                    if (isSelected) selectedPalette.colorForLevel(4, colors.isDark) else colors.borderHairline,
-                                    RoundedCornerShape(8.dp)
-                                )
-                                .clickable { onUpdateDraft(draft.copy(ritualTime = trackKey)) }
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(
-                                    imageVector = trackIcon,
-                                    contentDescription = null,
-                                    tint = if (isSelected) selectedPalette.onAccent else colors.textSecondary,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Text(
-                                    text = trackLabel,
-                                    style = TesseraType.TelemetryBadge,
-                                    color = if (isSelected) selectedPalette.onAccent else colors.textSecondary
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 7. Category Selector
+            // 6. Category Selector
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("CATEGORY TAG", style = TesseraType.MicroAxis, color = colors.textMuted)
                 val presetCategories = listOf("Focus", "Fitness", "Mind", "Health", "Craft", "Finance")
@@ -503,7 +453,7 @@ fun HabitEditorDialog(
                             Text(
                                 text = cat.uppercase(Locale.US),
                                 style = TesseraType.TelemetryBadge,
-                                color = if (active) selectedPalette.onAccent else colors.textSecondary
+                                color = if (active) selectedPalette.onAccentFor(colors.isDark) else colors.textSecondary
                             )
                         }
                     }
@@ -728,7 +678,7 @@ fun HabitEditorDialog(
                 onClick = { onSaveHabit(draft.toHabitEntity()) },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = selectedPalette.colorForLevel(4, colors.isDark),
-                    contentColor = selectedPalette.onAccent
+                    contentColor = selectedPalette.onAccentFor(colors.isDark)
                 ),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
@@ -773,10 +723,15 @@ private fun StepperIconButton(
 @Composable
 private fun editorTextFieldColors(accentBorder: androidx.compose.ui.graphics.Color) =
     OutlinedTextFieldDefaults.colors(
+        focusedTextColor = TesseraTheme.colors.textPrimary,
+        unfocusedTextColor = TesseraTheme.colors.textPrimary,
+        cursorColor = accentBorder,
         focusedBorderColor = accentBorder,
-        unfocusedBorderColor = TesseraTheme.colors.borderHairline,
-        focusedContainerColor = TesseraTheme.colors.surfaceCard,
-        unfocusedContainerColor = TesseraTheme.colors.surfaceCard,
+        unfocusedBorderColor = TesseraTheme.colors.borderSpecular,
+        focusedContainerColor = TesseraTheme.colors.surfaceAbyss,
+        unfocusedContainerColor = TesseraTheme.colors.surfaceAbyss,
         focusedLabelColor = accentBorder,
-        unfocusedLabelColor = TesseraTheme.colors.textSecondary
+        unfocusedLabelColor = TesseraTheme.colors.textSecondary,
+        focusedPlaceholderColor = TesseraTheme.colors.textMuted,
+        unfocusedPlaceholderColor = TesseraTheme.colors.textMuted
     )
