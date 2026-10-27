@@ -5,6 +5,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -60,6 +61,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,6 +70,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import app.tessera.habit.BuildConfig
 import app.tessera.habit.api.HabitApiContract
 import app.tessera.habit.ui.components.GithubHeatmapGrid
 import app.tessera.habit.ui.theme.HabitPalette
@@ -77,6 +80,12 @@ import app.tessera.habit.ui.theme.ThemeMode
 import app.tessera.habit.ui.viewmodel.TesseraUiState
 import app.tessera.habit.widget.HabitCompactWidgetProvider
 import app.tessera.habit.widget.HabitHeatmapWidgetProvider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 import java.time.LocalDate
 import java.util.Locale
 
@@ -118,6 +127,15 @@ fun ApiAndSettingsScreen(
     var pasteJsonDraft by remember { mutableStateOf("") }
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     var isDevApiExpanded by remember { mutableStateOf(false) }
+
+    val coroutineScope = rememberCoroutineScope()
+    var isCheckingUpdate by remember { mutableStateOf(false) }
+    var latestApkUrl by remember {
+        mutableStateOf("https://github.com/AnoopSinghHS/tessera-habit-tracker/releases/download/v1.0.0/tessera-s26-ultra-release.apk")
+    }
+    var updateStatusText by remember {
+        mutableStateOf("Installed: v${BuildConfig.VERSION_NAME} (Build #${BuildConfig.VERSION_CODE}) · In-place updates preserve all local habits & streaks.")
+    }
 
     val createDocLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
@@ -347,6 +365,146 @@ fun ApiAndSettingsScreen(
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. Direct GitHub Release Updater (Check & In-Place APK Download)
+        item(key = "github_ota_updater") {
+            val accentEmerald = HabitPalette.EmeraldMatrix.colorForLevel(4, colors.isDark)
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = colors.surfaceCard,
+                border = BorderStroke(1.dp, accentEmerald.copy(alpha = 0.45f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "SOFTWARE UPDATES · GITHUB RELEASES",
+                                style = TesseraType.TelemetryBadge,
+                                color = accentEmerald
+                            )
+                            Text(
+                                text = "Tessera v${BuildConfig.VERSION_NAME} (Build #${BuildConfig.VERSION_CODE})",
+                                style = TesseraType.CardTitle,
+                                color = colors.textPrimary
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(colors.surfaceElevated)
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = if (isCheckingUpdate) "CHECKING..." else "ONE UI OTA",
+                                style = TesseraType.MicroAxis,
+                                color = accentEmerald
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = updateStatusText,
+                        style = TesseraType.CardSubtitle,
+                        color = colors.textSecondary
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                if (!isCheckingUpdate) {
+                                    isCheckingUpdate = true
+                                    updateStatusText = "Querying GitHub Releases API..."
+                                    coroutineScope.launch {
+                                        val result = withContext(Dispatchers.IO) {
+                                            runCatching {
+                                                val conn = (URL("https://api.github.com/repos/AnoopSinghHS/tessera-habit-tracker/releases/latest")
+                                                    .openConnection() as HttpURLConnection).apply {
+                                                    requestMethod = "GET"
+                                                    setRequestProperty("Accept", "application/vnd.github.v3+json")
+                                                    connectTimeout = 8000
+                                                    readTimeout = 8000
+                                                }
+                                                val body = conn.inputStream.bufferedReader().use { it.readText() }
+                                                val json = JSONObject(body)
+                                                val tagName = json.optString("tag_name", "v1.0.0")
+                                                val assets = json.optJSONArray("assets")
+                                                var foundUrl = "https://github.com/AnoopSinghHS/tessera-habit-tracker/releases/download/v1.0.0/tessera-s26-ultra-release.apk"
+                                                var updatedAt = json.optString("published_at", "").take(16).replace("T", " ")
+                                                if (assets != null) {
+                                                    for (i in 0 until assets.length()) {
+                                                        val asset = assets.getJSONObject(i)
+                                                        if (asset.optString("name") == "tessera-s26-ultra-release.apk") {
+                                                            foundUrl = asset.optString("browser_download_url", foundUrl)
+                                                            updatedAt = asset.optString("updated_at", updatedAt).take(16).replace("T", " ")
+                                                            break
+                                                        }
+                                                    }
+                                                }
+                                                Triple(tagName, updatedAt, foundUrl)
+                                            }
+                                        }
+                                        isCheckingUpdate = false
+                                        result.onSuccess { (tag, updated, url) ->
+                                            latestApkUrl = url
+                                            updateStatusText = "Latest GitHub Release: $tag (APK updated $updated UTC) · Installed: v${BuildConfig.VERSION_NAME}. Tap Download to install in-place."
+                                            onPostMessage("Latest release fetched ($tag)")
+                                        }.onFailure {
+                                            updateStatusText = "Could not reach GitHub API. You can still tap Download Latest APK directly."
+                                        }
+                                    }
+                                }
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, colors.borderSpecular),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("CHECK UPDATES", style = TesseraType.MicroAxis, color = colors.textPrimary)
+                        }
+
+                        Button(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                runCatching {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(latestApkUrl)).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    context.startActivity(intent)
+                                    onPostMessage("Downloading latest APK from GitHub...")
+                                }.onFailure {
+                                    onPostMessage("Unable to open browser for APK download")
+                                }
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = accentEmerald,
+                                contentColor = HabitPalette.EmeraldMatrix.onAccentFor(colors.isDark)
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Rounded.FileDownload, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("DOWNLOAD APK", style = TesseraType.MicroAxis)
                         }
                     }
                 }
