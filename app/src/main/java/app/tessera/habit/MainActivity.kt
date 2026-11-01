@@ -163,6 +163,7 @@ private fun TesseraRootApp(viewModel: TesseraViewModel) {
                         DashboardScreen(
                             uiState = uiState,
                             onCheckInHabit = { habitId -> viewModel.smartCheckIn(habitId) },
+                            onGatewayCheckInHabit = { habitId -> viewModel.gatewayCheckIn(habitId) },
                             onOpenHabitDetail = { habitId -> viewModel.openHabitDetail(habitId) },
                             onOpenCreateHabit = { viewModel.openCreateHabitDialog() },
                             onSelectCategory = { cat -> viewModel.selectCategory(cat) },

@@ -396,7 +396,28 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
 
     fun smartCheckIn(habitId: Long, date: LocalDate = LocalDate.now()) {
         viewModelScope.launch {
-            repository.smartCheckIn(habitId = habitId, date = date)
+            val nextCount = repository.smartCheckIn(habitId = habitId, date = date)
+            val habit = uiState.value.allHabits.firstOrNull { it.habit.id == habitId }?.habit
+            if (habit != null && nextCount >= habit.targetPerDay.coerceAtLeast(1) && habit.identityStatement.isNotBlank()) {
+                controlState.update {
+                    it.copy(statusMessage = "Vote cast: ${habit.identityStatement}")
+                }
+            }
+        }
+    }
+
+    fun gatewayCheckIn(habitId: Long, date: LocalDate = LocalDate.now()) {
+        viewModelScope.launch {
+            val nextCount = repository.gatewayCheckIn(habitId = habitId, date = date)
+            val habit = uiState.value.allHabits.firstOrNull { it.habit.id == habitId }?.habit
+            if (habit != null && nextCount > 0) {
+                val msg = if (habit.microStarter.isNotBlank()) {
+                    "2m Gateway logged (${habit.microStarter}) · Streak protected"
+                } else {
+                    "2m Gateway logged · Streak protected"
+                }
+                controlState.update { it.copy(statusMessage = msg) }
+            }
         }
     }
 

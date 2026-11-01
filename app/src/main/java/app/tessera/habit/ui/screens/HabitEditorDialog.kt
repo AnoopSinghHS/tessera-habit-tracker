@@ -47,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.tessera.habit.data.local.HabitEntity
 import app.tessera.habit.ui.components.HabitIcons
 import app.tessera.habit.ui.theme.HabitPalette
@@ -54,6 +55,76 @@ import app.tessera.habit.ui.theme.TesseraTheme
 import app.tessera.habit.ui.theme.TesseraType
 import app.tessera.habit.ui.viewmodel.HabitDraft
 import java.util.Locale
+
+private data class GharatPreset(
+    val label: String,
+    val title: String,
+    val category: String,
+    val colorKey: String,
+    val iconKey: String,
+    val identityStatement: String,
+    val cueAnchor: String,
+    val microStarter: String,
+    val temptationReward: String
+)
+
+private val gharatPresets = listOf(
+    GharatPreset(
+        label = "Writing",
+        title = "Write 500 Words",
+        category = "Craft",
+        colorKey = HabitPalette.CyberAmber.key,
+        iconKey = "quill_pen",
+        identityStatement = "I am a writer who clarifies thought on the page every day",
+        cueAnchor = "pour my morning cup of coffee",
+        microStarter = "Open my draft and write one true sentence",
+        temptationReward = "savor my artisanal espresso while reviewing yesterday's paragraph"
+    ),
+    GharatPreset(
+        label = "Singing",
+        title = "Vocal Riyaz & Scales",
+        category = "Craft",
+        colorKey = HabitPalette.SolarGold.key,
+        iconKey = "waveform",
+        identityStatement = "I am a vocalist who tunes my voice with daily riyaz",
+        cueAnchor = "warm up my throat with warm water",
+        microStarter = "Sustained Sa-Pa-Sa tanpura drone for 2 minutes",
+        temptationReward = "sing through my favorite composition freely"
+    ),
+    GharatPreset(
+        label = "Working Out",
+        title = "Strength & Mobility",
+        category = "Fitness",
+        colorKey = HabitPalette.CrimsonEmber.key,
+        iconKey = "barbell",
+        identityStatement = "I am an athlete who never misses twice",
+        cueAnchor = "change out of work clothes in the evening",
+        microStarter = "Lace up training shoes and do 10 bodyweight squats",
+        temptationReward = "blast my high-energy workout playlist and take a hot shower"
+    ),
+    GharatPreset(
+        label = "Calories",
+        title = "Macro & Calorie Ledger",
+        category = "Health",
+        colorKey = HabitPalette.EmeraldMatrix.key,
+        iconKey = "leaf",
+        identityStatement = "I am someone who fuels my body with deliberate precision",
+        cueAnchor = "plate my first meal of the day",
+        microStarter = "Log breakfast protein and calorie estimate in 60 seconds",
+        temptationReward = "enjoy my meal guilt-free knowing the numbers are locked"
+    ),
+    GharatPreset(
+        label = "Coding",
+        title = "Deep Systems Architecture",
+        category = "Focus",
+        colorKey = HabitPalette.CobaltPulse.key,
+        iconKey = "terminal",
+        identityStatement = "I am an engineer who ships clean architecture daily",
+        cueAnchor = "sit at my desk and close all browser tabs",
+        microStarter = "Read one function or write one failing unit test",
+        temptationReward = "put on my lo-fi synthwave mix with noise cancellation"
+    )
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -222,7 +293,104 @@ fun HabitEditorDialog(
                 }
             }
 
-            // 2. ATOMIC HABITS: Law 4 — Identity Anchor ("Who do you want to become?")
+            // 1b. Quick-Fill Domain Blueprints (Writing, Singing, Working Out, Calories, Coding)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "QUICK-FILL ATOMS × GHARAT BLUEPRINTS",
+                    style = TesseraType.MicroAxis,
+                    color = colors.textSecondary
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    gharatPresets.forEach { preset ->
+                        val isMatch = draft.title.equals(preset.title, ignoreCase = true)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(
+                                    if (isMatch) selectedPalette.colorForLevel(4, colors.isDark)
+                                    else colors.surfaceCard
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isMatch) selectedPalette.colorForLevel(4, colors.isDark)
+                                    else colors.borderSpecular,
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                                .clickable {
+                                    onUpdateDraft(
+                                        draft.copy(
+                                            title = preset.title,
+                                            slug = HabitEntity.generateSlug(preset.title),
+                                            category = preset.category,
+                                            colorKey = preset.colorKey,
+                                            iconKey = preset.iconKey,
+                                            identityStatement = preset.identityStatement,
+                                            cueAnchor = preset.cueAnchor,
+                                            microStarter = preset.microStarter,
+                                            temptationReward = preset.temptationReward
+                                        )
+                                    )
+                                }
+                                .padding(horizontal = 12.dp, vertical = 7.dp)
+                        ) {
+                            Text(
+                                text = preset.label.uppercase(Locale.US),
+                                style = TesseraType.TelemetryBadge,
+                                color = if (isMatch) selectedPalette.onAccentFor(colors.isDark)
+                                else colors.textPrimary
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 1c. Live Synthesized Sentence Blueprint (Atoms × Sikhi Ghāṛat / Sahaj / Chauka)
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                color = colors.surfaceCard,
+                border = BorderStroke(1.dp, selectedPalette.colorForLevel(3, colors.isDark))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "SACHEE TAKSAAL · LIVE SENTENCE BLUEPRINT",
+                            style = TesseraType.MicroAxis,
+                            color = selectedPalette.colorForLevel(4, colors.isDark)
+                        )
+                        Text(
+                            text = "GHARAT × SAHAJ",
+                            style = TesseraType.MicroAxis,
+                            color = colors.textSecondary
+                        )
+                    }
+                    val liveIdentity = draft.identityStatement.ifBlank { "I am someone who shows up daily" }
+                    val liveCue = draft.cueAnchor.ifBlank { "my daily anchor cue" }
+                    val liveAction = draft.title.ifBlank { "practice my habit" }
+                    val liveGateway = draft.microStarter.ifBlank { "2 minutes of steady effort" }
+                    Text(
+                        text = "“$liveIdentity. After I $liveCue, I will $liveAction — or on tough days cast a 2-minute Sahaj vote: $liveGateway.”",
+                        style = TesseraType.CardTitle.copy(fontSize = 14.sp),
+                        color = colors.textPrimary
+                    )
+                }
+            }
+
+            // 2. ATOMIC HABITS: Law 4 — Identity Anchor / Ghāṛat ("Who are you forging?")
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
@@ -246,13 +414,13 @@ fun HabitEditorDialog(
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            text = "LAW 4: IDENTITY ANCHOR (MAKE IT SATISFYING)",
+                            text = "LAW 4 · GHARAT IDENTITY MINT (WHO ARE YOU BECOMING?)",
                             style = TesseraType.MicroAxis,
                             color = selectedPalette.colorForLevel(4, colors.isDark)
                         )
                     }
                     Text(
-                        text = "Every check-in is a vote for the type of person you wish to become. Re-frame the habit as your identity.",
+                        text = "In Japji Sahib (Pauri 38), patience (Dheeraj) is the goldsmith forging character (Gharat). Every check-in casts a vote for your identity.",
                         style = TesseraType.CardSubtitle,
                         color = colors.textSecondary
                     )
@@ -260,7 +428,7 @@ fun HabitEditorDialog(
                         value = draft.identityStatement,
                         onValueChange = { onUpdateDraft(draft.copy(identityStatement = it)) },
                         label = { Text("Identity Statement (\"I am the type of person who...\")", style = TesseraType.CardSubtitle) },
-                        placeholder = { Text("e.g. I am a writer who publishes daily, or I am an athlete who honors recovery", style = TesseraType.CardSubtitle) },
+                        placeholder = { Text("e.g. I am a writer who publishes daily, or I am a vocalist who honors daily riyaz", style = TesseraType.CardSubtitle) },
                         singleLine = false,
                         maxLines = 2,
                         colors = editorTextFieldColors(selectedPalette.level3),
@@ -294,7 +462,7 @@ fun HabitEditorDialog(
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            text = "LAW 1: THE CUE & HABIT STACKING (MAKE IT OBVIOUS)",
+                            text = "LAW 1 · CHAUKA ANCHOR & STACKING (MAKE IT OBVIOUS)",
                             style = TesseraType.MicroAxis,
                             color = selectedPalette.colorForLevel(4, colors.isDark)
                         )
@@ -308,8 +476,8 @@ fun HabitEditorDialog(
                             } else draft.slug
                             onUpdateDraft(draft.copy(title = newTitle, slug = updatedSlug))
                         },
-                        label = { Text("Habit Behavior / Action", style = TesseraType.CardSubtitle) },
-                        placeholder = { Text("e.g. Write 500 Words, Deep Architecture Work, Vocal Scales", style = TesseraType.CardSubtitle) },
+                        label = { Text("Full Habit Session (“I will...”)", style = TesseraType.CardSubtitle) },
+                        placeholder = { Text("e.g. Write 500 Words, Vocal Riyaz, Strength Session, Log Calories", style = TesseraType.CardSubtitle) },
                         singleLine = true,
                         colors = editorTextFieldColors(selectedPalette.level3),
                         shape = RoundedCornerShape(10.dp),
@@ -319,8 +487,8 @@ fun HabitEditorDialog(
                     OutlinedTextField(
                         value = draft.cueAnchor,
                         onValueChange = { onUpdateDraft(draft.copy(cueAnchor = it)) },
-                        label = { Text("Anchor Event (\"After I...\")", style = TesseraType.CardSubtitle) },
-                        placeholder = { Text("e.g. After I brew morning coffee, or After I step out of shower...", style = TesseraType.CardSubtitle) },
+                        label = { Text("Anchor Cue (“After I...”)", style = TesseraType.CardSubtitle) },
+                        placeholder = { Text("e.g. pour my morning coffee, warm up my voice, plate my first meal", style = TesseraType.CardSubtitle) },
                         singleLine = false,
                         maxLines = 2,
                         colors = editorTextFieldColors(selectedPalette.level3),
@@ -330,7 +498,7 @@ fun HabitEditorDialog(
                 }
             }
 
-            // 4. ATOMIC HABITS: Law 3 — The 2-Minute Gateway Rule ("Make It Easy")
+            // 4. ATOMIC HABITS: Law 3 — The 2-Minute Sahaj Gateway Rule ("Make It Easy")
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
@@ -354,21 +522,21 @@ fun HabitEditorDialog(
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            text = "LAW 3: THE 2-MINUTE RULE (MAKE IT EASY)",
+                            text = "LAW 3 · 2-MINUTE SAHAJ GATEWAY (NEVER MISS TWICE)",
                             style = TesseraType.MicroAxis,
                             color = selectedPalette.colorForLevel(4, colors.isDark)
                         )
                     }
                     Text(
-                        text = "Scale down your habit until it takes under 120 seconds. Master the art of showing up before optimizing perfection.",
+                        text = "Sahaj pakai so meetha hoi — what ripens slowly and steadily is sweetest. Logging your 2-minute gateway lights up your tile in Level 2 shade and protects your streak on exhausting days.",
                         style = TesseraType.CardSubtitle,
                         color = colors.textSecondary
                     )
                     OutlinedTextField(
                         value = draft.microStarter,
                         onValueChange = { onUpdateDraft(draft.copy(microStarter = it)) },
-                        label = { Text("2-Minute Gateway Starter (\"To start, I will...\")", style = TesseraType.CardSubtitle) },
-                        placeholder = { Text("e.g. Write 1 single sentence, or Tie gym sneakers and step onto mat", style = TesseraType.CardSubtitle) },
+                        label = { Text("2-Minute Sahaj Gateway (“On low-energy days, I will at least...”)", style = TesseraType.CardSubtitle) },
+                        placeholder = { Text("e.g. Write 1 true sentence, 2m tanpura drone, lace up gym shoes", style = TesseraType.CardSubtitle) },
                         singleLine = false,
                         maxLines = 2,
                         colors = editorTextFieldColors(selectedPalette.level3),

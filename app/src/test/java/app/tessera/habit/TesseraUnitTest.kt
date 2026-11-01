@@ -278,4 +278,39 @@ class TesseraUnitTest {
         assertEquals(draft.ritualTime, hydratedDraft.ritualTime)
         assertFalse(hydratedDraft.hasUnsavedChanges)
     }
+
+    @Test
+    fun `Gateway check-in shades binary habit at Level 2 and protects streak`() {
+        val today = LocalDate.of(2026, 10, 16)
+        val yesterday = today.minusDays(1)
+        val habit = HabitEntity(
+            id = 5L,
+            slug = "vocal-riyaz",
+            title = "Vocal Riyaz",
+            targetPerDay = 1
+        )
+        val logs = listOf(
+            HabitLogEntity(
+                habitId = 5L,
+                dateEpochDay = yesterday.toEpochDay(),
+                count = 1,
+                note = "Full session"
+            ),
+            HabitLogEntity(
+                habitId = 5L,
+                dateEpochDay = today.toEpochDay(),
+                count = 1,
+                note = "${HabitWithLogs.GATEWAY_TAG} 2m Sahaj Gateway"
+            )
+        )
+        val hwl = HabitWithLogs(habit = habit, logs = logs)
+        assertTrue(hwl.isGatewayOn(today))
+        assertFalse(hwl.isGatewayOn(yesterday))
+        assertEquals(2, hwl.intensityLevelForDate(today))
+        assertEquals(4, hwl.intensityLevelForDate(yesterday))
+
+        val stats = hwl.computeStats(today)
+        assertEquals(2, stats.currentStreak)
+        assertEquals(2, stats.bestStreak)
+    }
 }

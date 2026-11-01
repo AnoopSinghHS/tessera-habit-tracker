@@ -102,6 +102,9 @@ fun HabitDetailSheet(
     val countsByEpochDay = remember(habitWithLogs.logs) {
         habitWithLogs.logs.associate { it.dateEpochDay to it.count }
     }
+    val gatewayEpochDays = remember(habitWithLogs.logs) {
+        habitWithLogs.gatewayEpochDays()
+    }
 
     var selectedDate by remember { mutableStateOf(today) }
     var displayedMonth by remember { mutableStateOf(YearMonth.from(today)) }
@@ -361,6 +364,7 @@ fun HabitDetailSheet(
                         countsByEpochDay = countsByEpochDay,
                         targetPerDay = habit.targetPerDay,
                         palette = palette,
+                        gatewayEpochDays = gatewayEpochDays,
                         weeks = 52,
                         cellSize = 11.5.dp,
                         cellGap = 3.dp,

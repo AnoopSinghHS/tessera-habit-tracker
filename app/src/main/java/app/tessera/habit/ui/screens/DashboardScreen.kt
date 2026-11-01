@@ -64,7 +64,8 @@ fun DashboardScreen(
     onToggleTheme: () -> Unit,
     onOpenApiBridge: () -> Unit,
     onResetDemoData: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onGatewayCheckInHabit: (Long) -> Unit = {}
 ) {
     val colors = TesseraTheme.colors
     val today = remember { LocalDate.now() }
@@ -125,6 +126,7 @@ fun DashboardScreen(
                     HabitCompactBentoCard(
                         habitWithLogs = first,
                         onCheckInClick = { onCheckInHabit(first.habit.id) },
+                        onGatewayCheckInClick = { onGatewayCheckInHabit(first.habit.id) },
                         onCardClick = { onOpenHabitDetail(first.habit.id) },
                         today = today,
                         modifier = Modifier.weight(1f)
@@ -134,6 +136,7 @@ fun DashboardScreen(
                         HabitCompactBentoCard(
                             habitWithLogs = second,
                             onCheckInClick = { onCheckInHabit(second.habit.id) },
+                            onGatewayCheckInClick = { onGatewayCheckInHabit(second.habit.id) },
                             onCardClick = { onOpenHabitDetail(second.habit.id) },
                             today = today,
                             modifier = Modifier.weight(1f)
@@ -151,6 +154,7 @@ fun DashboardScreen(
                 HabitCard(
                     habitWithLogs = habitWithLogs,
                     onCheckInClick = { onCheckInHabit(habitWithLogs.habit.id) },
+                    onGatewayCheckInClick = { onGatewayCheckInHabit(habitWithLogs.habit.id) },
                     onCardClick = { onOpenHabitDetail(habitWithLogs.habit.id) },
                     today = today
                 )

@@ -36,9 +36,26 @@ data class HabitWithLogs(
         return countForDate(date) >= habit.targetPerDay.coerceAtLeast(1)
     }
 
+    fun isGatewayOn(date: LocalDate): Boolean {
+        val epochDay = date.toEpochDay()
+        val log = logs.firstOrNull { it.dateEpochDay == epochDay } ?: return false
+        return log.count > 0 && log.note.contains(GATEWAY_TAG)
+    }
+
+    fun gatewayEpochDays(): Set<Long> {
+        return logs
+            .filter { it.count > 0 && it.note.contains(GATEWAY_TAG) }
+            .map { it.dateEpochDay }
+            .toSet()
+    }
+
     fun intensityLevelForDate(date: LocalDate): Int {
+        val count = countForDate(date)
+        if (count > 0 && isGatewayOn(date) && habit.targetPerDay <= 1) {
+            return 2
+        }
         return HabitStats.calculateIntensityLevel(
-            count = countForDate(date),
+            count = count,
             targetPerDay = habit.targetPerDay
         )
     }
@@ -47,7 +64,7 @@ data class HabitWithLogs(
         val target = habit.targetPerDay.coerceAtLeast(1)
         val activeLogs = logs.filter { it.count > 0 }
         val completedEpochDays = activeLogs
-            .filter { it.count >= target }
+            .filter { it.count >= target || it.note.contains(GATEWAY_TAG) }
             .map { it.dateEpochDay }
             .toSortedSet()
 
@@ -128,5 +145,9 @@ data class HabitWithLogs(
             weekdayDistribution = weekdayCounts.toList(),
             monthlyCompletions = monthlyMap
         )
+    }
+
+    companion object {
+        const val GATEWAY_TAG = "[GATEWAY]"
     }
 }

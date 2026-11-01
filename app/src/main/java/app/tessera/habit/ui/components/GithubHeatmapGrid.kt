@@ -53,6 +53,7 @@ fun GithubHeatmapGrid(
     targetPerDay: Int,
     palette: HabitPaletteSpec,
     modifier: Modifier = Modifier,
+    gatewayEpochDays: Set<Long> = emptySet(),
     weeks: Int = 15,
     cellSize: Dp = 11.dp,
     cellGap: Dp = 2.5.dp,
@@ -223,7 +224,11 @@ fun GithubHeatmapGrid(
                         }
 
                         val count = countsByEpochDay[cellEpoch] ?: 0
-                        val level = HabitPalette.calculateIntensityLevel(count, targetPerDay)
+                        val level = if (count > 0 && targetPerDay <= 1 && gatewayEpochDays.contains(cellEpoch)) {
+                            2
+                        } else {
+                            HabitPalette.calculateIntensityLevel(count, targetPerDay)
+                        }
                         val fillColor = palette.colorForLevel(level, colors.isDark)
 
                         drawRoundRect(
