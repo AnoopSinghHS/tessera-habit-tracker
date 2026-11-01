@@ -159,6 +159,7 @@ object HabitPalette {
     )
 
     val AmberWarm = CyberAmber
+    val SolarGold = CyberAmber
 
     val VioletNebula = HabitPaletteSpec(
         key = "violet",
