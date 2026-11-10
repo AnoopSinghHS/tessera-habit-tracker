@@ -1,61 +1,150 @@
 package app.tessera.habit.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import app.tessera.habit.data.model.HabitStats
 import app.tessera.habit.data.model.HabitWithLogs
-import app.tessera.habit.ui.components.HabitIcons
-import app.tessera.habit.ui.components.StreakPillBadge
+import app.tessera.habit.ui.components.TesseraCard
+import app.tessera.habit.ui.components.TesseraDimens
+import app.tessera.habit.ui.components.TesseraDivider
 import app.tessera.habit.ui.components.YearOverviewCard
-import app.tessera.habit.ui.theme.HabitPalette
-import app.tessera.habit.ui.theme.HabitPaletteSpec
+import app.tessera.habit.ui.components.completedEpochDays
+import app.tessera.habit.ui.components.firstTrackedEpochDay
 import app.tessera.habit.ui.theme.TesseraTheme
 import app.tessera.habit.ui.theme.TesseraType
 import app.tessera.habit.ui.viewmodel.TesseraUiState
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-import kotlin.math.cos
 import kotlin.math.roundToInt
-import kotlin.math.sin
 
-private data class HabitTelemetryRow(
-    val habitWithLogs: HabitWithLogs,
-    val stats: HabitStats
+private const val RECENT_DAYS = 30
+private const val WEEKDAY_WEEKS = 12
+
+/** Fewest tracked days a weekday needs before it is named as strongest or weakest. */
+private const val MIN_DAYS_PER_WEEKDAY = 4
+
+private val WeekdayLetters = listOf("M", "T", "W", "T", "F", "S", "S")
+private val WeekdayNames = listOf(
+    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
 )
+
+/** Space left under the last card so it scrolls clear of the bottom bar. */
+private val BottomBarClearance = TesseraDimens.SpaceXxl * 3
+
+private class HabitProgressRow(
+    val id: Long,
+    val title: String,
+    val currentStreak: Int,
+    val doneDays: Int,
+    val trackedDays: Int
+)
+
+private class ProgressSummary(
+    val rows: List<HabitProgressRow>,
+    val doneLast30: Int,
+    val trackedLast30: Int,
+    /** Index 0 = Monday .. 6 = Sunday, over the last [WEEKDAY_WEEKS] weeks. */
+    val weekdayDone: IntArray,
+    val weekdayTracked: IntArray
+)
+
+/**
+ * Totals across all active habits. A habit only counts from the day it started
+ * (its creation date, or its first check-in if that is earlier).
+ */
+private fun buildProgressSummary(habits: List<HabitWithLogs>, today: LocalDate): ProgressSummary {
+    val todayEpoch = today.toEpochDay()
+    val weekdayDone = IntArray(7)
+    val weekdayTracked = IntArray(7)
+    var doneLast30 = 0
+    var trackedLast30 = 0
+    val rows = ArrayList<HabitProgressRow>()
+
+    for (hwl in habits) {
+        val firstDay = hwl.firstTrackedEpochDay()
+        val completed = hwl.completedEpochDays()
+
+        var done = 0
+        var tracked = 0
+        for (offset in 0 until RECENT_DAYS) {
+            val day = todayEpoch - offset
+            if (day >= firstDay) {
+                tracked++
+                if (completed.contains(day)) done++
+            }
+        }
+        doneLast30 += done
+        trackedLast30 += tracked
+
+        for (offset in 0 until WEEKDAY_WEEKS * 7) {
+            val day = todayEpoch - offset
+            if (day >= firstDay) {
+                // Epoch day 0 was a Thursday, so shift by 3 to make Monday index 0.
+                val weekday = (((day + 3) % 7 + 7) % 7).toInt()
+                weekdayTracked[weekday]++
+                if (completed.contains(day)) weekdayDone[weekday]++
+            }
+        }
+
+        rows.add(
+            HabitProgressRow(
+                id = hwl.habit.id,
+                title = hwl.habit.title,
+                currentStreak = hwl.computeStats(today).currentStreak,
+                doneDays = done,
+                trackedDays = tracked
+            )
+        )
+    }
+
+    val sortedRows = rows.sortedWith(
+        compareByDescending<HabitProgressRow> { it.currentStreak }
+            .thenByDescending { it.doneDays }
+            .thenBy { it.title }
+    )
+
+    return ProgressSummary(
+        rows = sortedRows,
+        doneLast30 = doneLast30,
+        trackedLast30 = trackedLast30,
+        weekdayDone = weekdayDone,
+        weekdayTracked = weekdayTracked
+    )
+}
 
 @Composable
 fun AnalyticsScreen(
@@ -66,531 +155,304 @@ fun AnalyticsScreen(
     val colors = TesseraTheme.colors
     val today = remember { LocalDate.now() }
     val activeHabits = uiState.activeHabits
+    val summary = remember(activeHabits, today) { buildProgressSummary(activeHabits, today) }
 
-    val telemetryRows = remember(activeHabits, today) {
-        activeHabits.map { hwl ->
-            HabitTelemetryRow(
-                habitWithLogs = hwl,
-                stats = hwl.computeStats(today)
-            )
-        }.sortedByDescending {
-            it.stats.currentStreak * 100 + (it.stats.completionRate30Days * 100).roundToInt()
-        }
-    }
-
-    val globalConsistencyRatio = remember(telemetryRows) {
-        if (telemetryRows.isEmpty()) 0f
-        else (telemetryRows.sumOf { it.stats.completionRate30Days.toDouble() } / telemetryRows.size).toFloat()
-    }
-    val globalConsistencyPct = (globalConsistencyRatio * 100f).roundToInt()
-
-    val topActiveStreak = remember(telemetryRows) {
-        telemetryRows.maxOfOrNull { it.stats.currentStreak } ?: 0
-    }
-    val topBestStreak = remember(telemetryRows) {
-        telemetryRows.maxOfOrNull { it.stats.bestStreak } ?: 0
-    }
-    val totalCheckIns = remember(telemetryRows) {
-        telemetryRows.sumOf { it.stats.totalCompletions }
-    }
-
-    // Reorder weekday distribution (Mon..Sun -> Sun..Sat) for the "S M T W T F S" Braun chart
-    val sundayFirstWeekdayCounts = remember(telemetryRows) {
-        val monFirst = IntArray(7)
-        telemetryRows.forEach { row ->
-            row.stats.weekdayDistribution.forEachIndexed { idx, v ->
-                if (idx in 0..6) monFirst[idx] += v
-            }
-        }
-        // Index 6 is Sunday in Mon..Sun (0..6)
-        listOf(
-            monFirst[6], // S
-            monFirst[0], // M
-            monFirst[1], // T
-            monFirst[2], // W
-            monFirst[3], // T
-            monFirst[4], // F
-            monFirst[5]  // S
-        )
-    }
-
-    val formattedDate = remember(today) {
-        today.format(DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.US))
-    }
-
-    LazyColumn(
+    Column(
         modifier = modifier
             .fillMaxSize()
-            .background(colors.surfaceAbyss),
-        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 104.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .background(colors.surfaceAbyss)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = TesseraDimens.ScreenPadding)
+            .padding(top = TesseraDimens.SpaceL, bottom = BottomBarClearance),
+        verticalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceM)
     ) {
-        // 1. Centered Editorial Header (clearly explaining this screen's purpose)
-        item(key = "insights_header") {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Habit Insights & Telemetry",
-                    style = TesseraType.EditorialDateHeader,
-                    color = colors.textPrimary,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Long-term consistency & cadence across ${activeHabits.size} active habits",
-                    style = TesseraType.CardSubtitle,
-                    color = colors.textSecondary,
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
-
-        // 2. Aggregated 52-Week Contribution Matrix (Warm Ochre / Botanical palette)
-        item(key = "year_overview_card") {
-            YearOverviewCard(
-                habitsWithLogs = activeHabits,
-                palette = HabitPalette.CyberAmber,
-                today = today
+        Text(
+            text = "Progress",
+            style = TesseraType.Headline,
+            color = colors.textPrimary,
+            modifier = Modifier.padding(
+                horizontal = TesseraDimens.SpaceXs,
+                vertical = TesseraDimens.SpaceS
             )
-        }
+        )
 
-        // 3. Signature Braun Horology Dial + 7-Day Vertical Pill Chart (matching Stitch concept!)
-        item(key = "braun_dial_and_weekly_bars") {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                BraunRadialConsistencyCard(
-                    consistencyRatio = globalConsistencyRatio,
-                    palette = HabitPalette.CyberAmber,
-                    modifier = Modifier
-                        .weight(1f)
-                        .aspectRatio(1f)
-                )
-
-                BraunWeeklyPillChartCard(
-                    sundayFirstCounts = sundayFirstWeekdayCounts,
-                    modifier = Modifier
-                        .weight(1f)
-                        .aspectRatio(1f)
+        if (activeHabits.isEmpty()) {
+            TesseraCard {
+                Text(
+                    text = "Add a habit on the Today tab and your progress will show up here.",
+                    style = TesseraType.Body,
+                    color = colors.textSecondary
                 )
             }
-        }
+        } else {
+            RecentRateCard(done = summary.doneLast30, tracked = summary.trackedLast30)
 
-        // 4. Global 2x2 Summary Bento
-        item(key = "global_bento_summary") {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    GlobalStatTile(
-                        label = "30-Day Consistency",
-                        value = "$globalConsistencyPct%",
-                        subtitle = "Rolling average",
-                        highlight = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                    GlobalStatTile(
-                        label = "Longest Active",
-                        value = "$topActiveStreak days",
-                        subtitle = "Current streak",
-                        highlight = false,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    GlobalStatTile(
-                        label = "All-Time Best",
-                        value = "$topBestStreak days",
-                        subtitle = "Personal record",
-                        highlight = false,
-                        modifier = Modifier.weight(1f)
-                    )
-                    GlobalStatTile(
-                        label = "Total Check-ins",
-                        value = "$totalCheckIns",
-                        subtitle = "All-time volume",
-                        highlight = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-        }
+            YearOverviewCard(habitsWithLogs = activeHabits, today = today)
 
-        // 5. Habit Breakdown List
-        item(key = "leaderboard_header") {
+            WeekdayCard(done = summary.weekdayDone, tracked = summary.weekdayTracked)
+
+            HabitListCard(rows = summary.rows, onOpenHabitDetail = onOpenHabitDetail)
+        }
+    }
+}
+
+@Composable
+private fun CardTitleRow(title: String, trailing: String? = null) {
+    val colors = TesseraTheme.colors
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = TesseraType.Label,
+            color = colors.textPrimary,
+            modifier = Modifier.weight(1f)
+        )
+        if (trailing != null) {
             Text(
-                text = "Habit Breakdown",
-                style = TesseraType.SectionTitle,
-                color = colors.textPrimary,
-                modifier = Modifier.padding(top = 6.dp)
-            )
-        }
-
-        items(
-            items = telemetryRows,
-            key = { it.habitWithLogs.habit.id }
-        ) { row ->
-            HabitBreakdownRowCard(
-                row = row,
-                onClick = { onOpenHabitDetail(row.habitWithLogs.habit.id) }
+                text = trailing,
+                style = TesseraType.Supporting,
+                color = colors.textSecondary
             )
         }
     }
 }
 
-/**
- * Braun Horology Radial Tick Dial (clarified with explicit title & percentage).
- * Renders 48 fine radial tick marks with rolling 30-day percentage in the center.
- */
+/** Overall completion rate across active habits for the last 30 days. */
 @Composable
-fun BraunRadialConsistencyCard(
-    consistencyRatio: Float,
-    palette: HabitPaletteSpec,
-    modifier: Modifier = Modifier
-) {
+private fun RecentRateCard(done: Int, tracked: Int) {
     val colors = TesseraTheme.colors
-    val clampedRatio = consistencyRatio.coerceIn(0f, 1f)
-    val pct = (clampedRatio * 100f).roundToInt()
-    val activeAccent = palette.colorForLevel(4, colors.isDark)
-    val warmTick = palette.colorForLevel(3, colors.isDark)
-    val inactiveTick = colors.borderSpecular
+    val fraction = if (tracked > 0) (done.toFloat() / tracked.toFloat()).coerceIn(0f, 1f) else 0f
+    val percent = (fraction * 100f).roundToInt()
 
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
-        color = colors.surfaceCard,
-        border = BorderStroke(1.dp, colors.borderHairline)
-    ) {
-        Column(
+    TesseraCard {
+        CardTitleRow(title = "Last 30 days")
+
+        Spacer(modifier = Modifier.height(TesseraDimens.SpaceS))
+
+        Text(
+            text = "$percent%",
+            style = TesseraType.Display,
+            color = colors.accent
+        )
+        Text(
+            text = "$done of $tracked check-ins",
+            style = TesseraType.Body,
+            color = colors.textSecondary
+        )
+
+        Spacer(modifier = Modifier.height(TesseraDimens.SpaceM))
+
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(50))
+                .background(colors.surfaceRecessed)
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.Start
-            ) {
-                Text(
-                    text = "30-DAY CONSISTENCY",
-                    style = TesseraType.MicroAxis,
-                    color = colors.textMuted
+            if (fraction > 0f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(fraction)
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(colors.accent)
                 )
-                Text(
-                    text = "Rolling rate",
-                    style = TesseraType.CardSubtitle,
-                    color = colors.textSecondary
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .aspectRatio(1f)
-                    .padding(4.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val totalTicks = 48
-                    val litTicks = (clampedRatio * totalTicks).roundToInt().coerceIn(0, totalTicks)
-                    val center = Offset(size.width / 2f, size.height / 2f)
-                    val outerRadius = (size.minDimension / 2f) * 0.95f
-                    val innerRadius = outerRadius * 0.78f
-                    val strokeWidthPx = 1.6.dp.toPx()
-
-                    for (i in 0 until totalTicks) {
-                        val angleDeg = -90.0 + (i * (360.0 / totalTicks))
-                        val angleRad = Math.toRadians(angleDeg)
-                        val cosA = cos(angleRad).toFloat()
-                        val sinA = sin(angleRad).toFloat()
-
-                        val start = Offset(
-                            x = center.x + innerRadius * cosA,
-                            y = center.y + innerRadius * sinA
-                        )
-                        val end = Offset(
-                            x = center.x + outerRadius * cosA,
-                            y = center.y + outerRadius * sinA
-                        )
-
-                        val tickColor = when {
-                            i < litTicks / 2 -> activeAccent
-                            i < litTicks -> warmTick
-                            else -> inactiveTick
-                        }
-
-                        drawLine(
-                            color = tickColor,
-                            start = start,
-                            end = end,
-                            strokeWidth = strokeWidthPx,
-                            cap = StrokeCap.Round
-                        )
-                    }
-                }
-
-                // Center Typography: Big Percentage + "RATE"
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "$pct%",
-                        style = TesseraType.TelemetryHero,
-                        color = activeAccent
-                    )
-                    Text(
-                        text = "CONSISTENCY",
-                        style = TesseraType.MicroAxis,
-                        color = colors.textMuted
-                    )
-                }
             }
         }
     }
 }
 
-/**
- * 7-Bar Vertical Pill Chart ("S M T W T F S") with explicit title and day counts.
- */
+/** Completion rate per weekday (Monday first) across active habits. */
 @Composable
-fun BraunWeeklyPillChartCard(
-    sundayFirstCounts: List<Int>,
-    modifier: Modifier = Modifier
-) {
+private fun WeekdayCard(done: IntArray, tracked: IntArray) {
     val colors = TesseraTheme.colors
-    val maxCount = (sundayFirstCounts.maxOrNull() ?: 1).coerceAtLeast(1)
-    val dayInitials = listOf("S", "M", "T", "W", "T", "F", "S")
-    val fillPillColor = colors.textPrimary
+    val rates = List(7) { i ->
+        if (tracked[i] > 0) (done[i].toFloat() / tracked[i].toFloat()).coerceIn(0f, 1f) else 0f
+    }
+    val fontScale = LocalDensity.current.fontScale
 
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
-        color = colors.surfaceCard,
-        border = BorderStroke(1.dp, colors.borderHairline)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.Start
-            ) {
-                Text(
-                    text = "WEEKDAY RHYTHM",
-                    style = TesseraType.MicroAxis,
-                    color = colors.textMuted
-                )
-                Text(
-                    text = "Cadence by day",
-                    style = TesseraType.CardSubtitle,
-                    color = colors.textSecondary
-                )
-            }
+    TesseraCard {
+        CardTitleRow(title = "By weekday", trailing = "Last $WEEKDAY_WEEKS weeks")
 
-            Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(TesseraDimens.SpaceL))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                for (i in 0..6) {
-                    val count = sundayFirstCounts.getOrElse(i) { 0 }
-                    val fillFraction = if (maxCount > 0 && count > 0) {
-                        (count.toFloat() / maxCount.toFloat()).coerceIn(0.18f, 1f)
-                    } else {
-                        0.08f
-                    }
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            // "100%" in Caption needs about 36dp at the default font size.
+            val showPercent = maxWidth / 7 >= 36.dp * fontScale
 
+            Row(modifier = Modifier.fillMaxWidth()) {
+                for (i in 0 until 7) {
+                    val percent = (rates[i] * 100f).roundToInt()
                     Column(
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxHeight(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Bottom
+                            .semantics(mergeDescendants = true) {
+                                contentDescription = if (tracked[i] > 0) {
+                                    "${WeekdayNames[i]}, $percent%"
+                                } else {
+                                    "${WeekdayNames[i]}, nothing tracked yet"
+                                }
+                            },
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        if (count > 0) {
+                        if (showPercent) {
                             Text(
-                                text = count.toString(),
-                                style = TesseraType.MicroAxis,
-                                color = colors.textMuted,
-                                fontSize = 8.sp
+                                text = if (tracked[i] > 0) "$percent%" else "",
+                                style = TesseraType.Caption,
+                                color = colors.textSecondary,
+                                maxLines = 1,
+                                softWrap = false,
+                                textAlign = TextAlign.Center
                             )
-                            Spacer(modifier = Modifier.height(2.dp))
+                            Spacer(modifier = Modifier.height(TesseraDimens.SpaceXs))
                         }
 
-                        Box(
-                            modifier = Modifier
-                                .width(7.dp)
-                                .weight(1f, fill = false)
-                                .height(52.dp)
-                                .clip(CircleShape)
-                                .background(colors.surfaceRecessed),
-                            contentAlignment = Alignment.BottomCenter
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .width(7.dp)
-                                    .fillMaxHeight(fillFraction)
-                                    .clip(CircleShape)
-                                    .background(if (count > 0) fillPillColor else colors.surfaceRecessed)
-                            )
-                        }
+                        WeekdayBar(fraction = rates[i])
 
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(TesseraDimens.SpaceS))
 
                         Text(
-                            text = dayInitials[i],
-                            style = TesseraType.MicroAxis,
-                            color = if (count > 0) colors.textPrimary else colors.textMuted
+                            text = WeekdayLetters[i],
+                            style = TesseraType.Caption,
+                            color = colors.textSecondary
                         )
                     }
                 }
             }
         }
-    }
-}
 
-@Composable
-private fun GlobalStatTile(
-    label: String,
-    value: String,
-    subtitle: String,
-    highlight: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val colors = TesseraTheme.colors
-    val accent = HabitPalette.EmeraldMatrix.colorForLevel(4, colors.isDark)
-
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        color = colors.surfaceCard,
-        border = BorderStroke(1.dp, colors.borderHairline)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        val sentence = weekdaySentence(done = done, tracked = tracked)
+        if (sentence != null) {
+            Spacer(modifier = Modifier.height(TesseraDimens.SpaceM))
             Text(
-                text = label,
-                style = TesseraType.MicroAxis,
+                text = sentence,
+                style = TesseraType.Supporting,
                 color = colors.textSecondary
             )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = value,
-                style = TesseraType.TelemetryHero,
-                color = if (highlight) accent else colors.textPrimary
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = subtitle,
-                style = TesseraType.CardSubtitle,
-                color = colors.textMuted
-            )
         }
     }
 }
 
 @Composable
-private fun HabitBreakdownRowCard(
-    row: HabitTelemetryRow,
-    onClick: () -> Unit
-) {
+private fun WeekdayBar(fraction: Float) {
     val colors = TesseraTheme.colors
-    val habit = row.habitWithLogs.habit
-    val stats = row.stats
-    val palette = remember(habit.colorKey) { HabitPalette.resolve(habit.colorKey) }
-    val ratePct = (stats.completionRate30Days * 100f).roundToInt()
-    val accent = palette.colorForLevel(4, colors.isDark)
+    val trackColor = colors.surfaceRecessed
+    val fillColor = colors.accent
 
-    Surface(
+    Canvas(
+        modifier = Modifier
+            .width(20.dp)
+            .height(96.dp)
+    ) {
+        val radius = CornerRadius(size.width / 2f, size.width / 2f)
+        drawRoundRect(
+            color = trackColor,
+            topLeft = Offset.Zero,
+            size = size,
+            cornerRadius = radius
+        )
+        if (fraction > 0f) {
+            // Never shorter than it is wide, so the rounded ends stay round.
+            val fillHeight = (size.height * fraction).coerceIn(size.width, size.height)
+            drawRoundRect(
+                color = fillColor,
+                topLeft = Offset(0f, size.height - fillHeight),
+                size = Size(size.width, fillHeight),
+                cornerRadius = radius
+            )
+        }
+    }
+}
+
+/** Names the best and weakest weekday, or null when there is too little data to say. */
+private fun weekdaySentence(done: IntArray, tracked: IntArray): String? {
+    for (i in 0 until 7) {
+        if (tracked[i] < MIN_DAYS_PER_WEEKDAY) return null
+    }
+    var best = 0
+    var worst = 0
+    for (i in 1 until 7) {
+        // Compare done/tracked as cross-products to avoid rounding ties.
+        if (done[i].toLong() * tracked[best] > done[best].toLong() * tracked[i]) best = i
+        if (done[i].toLong() * tracked[worst] < done[worst].toLong() * tracked[i]) worst = i
+    }
+    if (done[best].toLong() * tracked[worst] == done[worst].toLong() * tracked[best]) return null
+    return "Strongest on ${WeekdayNames[best]}s, weakest on ${WeekdayNames[worst]}s."
+}
+
+@Composable
+private fun HabitListCard(
+    rows: List<HabitProgressRow>,
+    onOpenHabitDetail: (Long) -> Unit
+) {
+    TesseraCard(contentPadding = 0.dp) {
+        Box(
+            modifier = Modifier.padding(
+                start = TesseraDimens.SpaceL,
+                end = TesseraDimens.SpaceL,
+                top = TesseraDimens.SpaceL,
+                bottom = TesseraDimens.SpaceXs
+            )
+        ) {
+            CardTitleRow(title = "Habits")
+        }
+
+        rows.forEachIndexed { index, row ->
+            if (index > 0) {
+                TesseraDivider(modifier = Modifier.padding(horizontal = TesseraDimens.SpaceL))
+            }
+            HabitRow(row = row, onClick = { onOpenHabitDetail(row.id) })
+        }
+
+        Spacer(modifier = Modifier.height(TesseraDimens.SpaceXs))
+    }
+}
+
+@Composable
+private fun HabitRow(row: HabitProgressRow, onClick: () -> Unit) {
+    val colors = TesseraTheme.colors
+    val streakText = when (row.currentStreak) {
+        0 -> "No streak"
+        else -> "${row.currentStreak}-day streak"
+    }
+    val daysText = if (row.trackedDays == 1) {
+        "${row.doneDays} of 1 day"
+    } else {
+        "${row.doneDays} of ${row.trackedDays} days"
+    }
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        color = colors.surfaceCard,
-        border = BorderStroke(1.dp, colors.borderHairline)
+            .defaultMinSize(minHeight = 56.dp)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = TesseraDimens.SpaceL, vertical = TesseraDimens.SpaceS),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = HabitIcons.resolve(habit.iconKey),
-                    contentDescription = habit.title,
-                    tint = colors.textPrimary,
-                    modifier = Modifier.size(22.dp)
-                )
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = habit.title,
-                        style = TesseraType.CardTitle,
-                        color = colors.textPrimary
-                    )
-                    Text(
-                        text = "Best ${stats.bestStreak} days · ${stats.totalCompletions} total check-ins",
-                        style = TesseraType.StreakLabel,
-                        color = colors.textSecondary
-                    )
-                }
-
-                StreakPillBadge(
-                    streakDays = stats.currentStreak,
-                    palette = palette,
-                    isActive = stats.currentStreak > 0
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(colors.surfaceRecessed)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(stats.completionRate30Days.coerceIn(0.04f, 1f))
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(accent)
-                    )
-                }
-
-                Text(
-                    text = "$ratePct%",
-                    style = TesseraType.MicroAxis,
-                    color = accent
-                )
-            }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = row.title,
+                style = TesseraType.BodyStrong,
+                color = colors.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = "$streakText · $daysText",
+                style = TesseraType.Supporting,
+                color = colors.textSecondary
+            )
         }
+
+        Spacer(modifier = Modifier.width(TesseraDimens.SpaceM))
+
+        Icon(
+            imageVector = Icons.Rounded.ChevronRight,
+            contentDescription = null,
+            tint = colors.textSecondary,
+            modifier = Modifier.size(24.dp)
+        )
     }
 }
