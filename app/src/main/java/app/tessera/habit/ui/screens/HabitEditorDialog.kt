@@ -1,8 +1,6 @@
 package app.tessera.habit.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -11,121 +9,70 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Bolt
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.DeleteOutline
-import androidx.compose.material.icons.rounded.NightsStay
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Remove
-import androidx.compose.material.icons.rounded.Timer
-import androidx.compose.material.icons.rounded.WbSunny
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import app.tessera.habit.data.local.HabitEntity
 import app.tessera.habit.ui.components.HabitIcons
-import app.tessera.habit.ui.theme.HabitPalette
+import app.tessera.habit.ui.components.SectionHeading
+import app.tessera.habit.ui.components.TesseraChip
+import app.tessera.habit.ui.components.TesseraDimens
+import app.tessera.habit.ui.components.TesseraDivider
+import app.tessera.habit.ui.components.TesseraIconButton
+import app.tessera.habit.ui.components.TesseraPrimaryButton
+import app.tessera.habit.ui.components.TesseraSecondaryButton
+import app.tessera.habit.ui.components.tesseraTextFieldColors
 import app.tessera.habit.ui.theme.TesseraTheme
 import app.tessera.habit.ui.theme.TesseraType
 import app.tessera.habit.ui.viewmodel.HabitDraft
 import java.util.Locale
 
-private data class GharatPreset(
-    val label: String,
-    val title: String,
-    val category: String,
-    val colorKey: String,
-    val iconKey: String,
-    val identityStatement: String,
-    val cueAnchor: String,
-    val microStarter: String,
-    val temptationReward: String
-)
+private val categorySuggestions = listOf("Health", "Mind", "Work", "Home")
 
-private val gharatPresets = listOf(
-    GharatPreset(
-        label = "Writing",
-        title = "Write 500 Words",
-        category = "Craft",
-        colorKey = HabitPalette.CyberAmber.key,
-        iconKey = "quill_pen",
-        identityStatement = "I am a writer who clarifies thought on the page every day",
-        cueAnchor = "pour my morning cup of coffee",
-        microStarter = "Open my draft and write one true sentence",
-        temptationReward = "savor my artisanal espresso while reviewing yesterday's paragraph"
-    ),
-    GharatPreset(
-        label = "Singing",
-        title = "Vocal Riyaz & Scales",
-        category = "Craft",
-        colorKey = HabitPalette.VioletNebula.key,
-        iconKey = "waveform",
-        identityStatement = "I am a vocalist who tunes my voice with daily riyaz",
-        cueAnchor = "warm up my throat with warm water",
-        microStarter = "Sustained Sa-Pa-Sa tanpura drone for 2 minutes",
-        temptationReward = "sing through my favorite composition freely"
-    ),
-    GharatPreset(
-        label = "Working Out",
-        title = "Strength & Mobility",
-        category = "Fitness",
-        colorKey = HabitPalette.CrimsonEmber.key,
-        iconKey = "barbell",
-        identityStatement = "I am an athlete who never misses twice",
-        cueAnchor = "change out of work clothes in the evening",
-        microStarter = "Lace up training shoes and do 10 bodyweight squats",
-        temptationReward = "blast my high-energy workout playlist and take a hot shower"
-    ),
-    GharatPreset(
-        label = "Calories",
-        title = "Macro & Calorie Ledger",
-        category = "Health",
-        colorKey = HabitPalette.EmeraldMatrix.key,
-        iconKey = "leaf",
-        identityStatement = "I am someone who fuels my body with deliberate precision",
-        cueAnchor = "plate my first meal of the day",
-        microStarter = "Log breakfast protein and calorie estimate in 60 seconds",
-        temptationReward = "enjoy my meal guilt-free knowing the numbers are locked"
-    ),
-    GharatPreset(
-        label = "Coding",
-        title = "Deep Systems Architecture",
-        category = "Focus",
-        colorKey = HabitPalette.CobaltPulse.key,
-        iconKey = "terminal",
-        identityStatement = "I am an engineer who ships clean architecture daily",
-        cueAnchor = "sit at my desk and close all browser tabs",
-        microStarter = "Read one function or write one failing unit test",
-        temptationReward = "put on my lo-fi synthwave mix with noise cancellation"
-    )
-)
+private const val MIN_TARGET_PER_DAY = 1
+private const val MAX_TARGET_PER_DAY = 24
+private const val ICONS_PER_ROW = 6
 
+/**
+ * The create/edit habit form. Closing the sheet ([onDismiss]) keeps the draft in memory;
+ * only [onDiscardDraft] or a successful save clears it.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HabitEditorDialog(
@@ -139,15 +86,24 @@ fun HabitEditorDialog(
     val colors = TesseraTheme.colors
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val selectedPalette = remember(draft.colorKey) { HabitPalette.resolve(draft.colorKey) }
-    val effectiveSlug = draft.slug.ifBlank {
-        HabitEntity.generateSlug(draft.title.ifBlank { "new-ritual" })
+    var whyExpanded by rememberSaveable {
+        mutableStateOf(
+            draft.identityStatement.isNotBlank() ||
+                draft.cueAnchor.isNotBlank() ||
+                draft.microStarter.isNotBlank() ||
+                draft.temptationReward.isNotBlank()
+        )
     }
+    var automationExpanded by rememberSaveable { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = colors.surfaceAbyss,
+        shape = RoundedCornerShape(
+            topStart = TesseraDimens.RadiusCard,
+            topEnd = TesseraDimens.RadiusCard
+        ),
+        containerColor = colors.surfaceCard,
         contentColor = colors.textPrimary,
         dragHandle = null
     ) {
@@ -155,751 +111,389 @@ fun HabitEditorDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(top = 8.dp)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .navigationBarsPadding()
+                .imePadding()
         ) {
-            // Top Bar with In-Memory Draft Persistence Indicator & Discard Option
+            // Header stays put while the form scrolls.
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = if (isEditing) "HABIT ARCHITECTURE" else "ATOMIC HABIT BUILDER",
-                            style = TesseraType.MicroAxis,
-                            color = selectedPalette.colorForLevel(4, colors.isDark)
-                        )
-                        if (!isEditing && draft.hasUnsavedChanges) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(colors.surfaceElevated)
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = "DRAFT PRESERVED",
-                                    style = TesseraType.MicroAxis,
-                                    color = selectedPalette.colorForLevel(3, colors.isDark)
-                                )
-                            }
-                        }
-                    }
-                    Text(
-                        text = if (isEditing) "Edit ${draft.title.ifBlank { "Ritual" }}" else "Synthesize New Ritual",
-                        style = TesseraType.SectionTitle,
-                        color = colors.textPrimary
-                    )
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (draft.hasUnsavedChanges || isEditing) {
-                        TextButton(onClick = onDiscardDraft) {
-                            Text(
-                                text = if (isEditing) "Reset" else "Clear Draft",
-                                style = TesseraType.MicroAxis,
-                                color = colors.textMuted
-                            )
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .size(34.dp)
-                            .clip(RoundedCornerShape(9.dp))
-                            .background(colors.surfaceCard)
-                            .border(1.dp, colors.borderHairline, RoundedCornerShape(9.dp))
-                            .clickable(onClick = onDismiss),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Close,
-                            contentDescription = "Close",
-                            tint = colors.textPrimary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
-
-            // 1. Live Architectural Preview Card
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                color = colors.surfaceCard,
-                border = BorderStroke(1.dp, selectedPalette.level3.copy(alpha = 0.55f))
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(selectedPalette.colorForLevel(1, colors.isDark))
-                                .border(1.dp, selectedPalette.level3.copy(alpha = 0.4f), RoundedCornerShape(10.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = HabitIcons.resolve(draft.iconKey),
-                                contentDescription = null,
-                                tint = selectedPalette.colorForLevel(4, colors.isDark),
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = draft.title.ifBlank { "Untitled Ritual" },
-                                style = TesseraType.CardTitle,
-                                color = colors.textPrimary
-                            )
-                            Text(
-                                text = "${draft.category.uppercase(Locale.US)} · #$effectiveSlug · ${draft.targetPerDay}x/day",
-                                style = TesseraType.MicroAxis,
-                                color = colors.textSecondary
-                            )
-                        }
-                    }
-
-                    // 5-stop mini swatch preview
-                    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                        for (lvl in 0..4) {
-                            Box(
-                                modifier = Modifier
-                                    .size(11.dp)
-                                    .clip(RoundedCornerShape(2.5.dp))
-                                    .background(selectedPalette.colorForLevel(lvl, colors.isDark))
-                            )
-                        }
-                    }
-                }
-            }
-
-            // 1b. Quick-Fill Domain Blueprints (Writing, Singing, Working Out, Calories, Coding)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "QUICK-FILL ATOMS × GHARAT BLUEPRINTS",
-                    style = TesseraType.MicroAxis,
-                    color = colors.textSecondary
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    gharatPresets.forEach { preset ->
-                        val isMatch = draft.title.equals(preset.title, ignoreCase = true)
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(
-                                    if (isMatch) selectedPalette.colorForLevel(4, colors.isDark)
-                                    else colors.surfaceCard
-                                )
-                                .border(
-                                    width = 1.dp,
-                                    color = if (isMatch) selectedPalette.colorForLevel(4, colors.isDark)
-                                    else colors.borderSpecular,
-                                    shape = RoundedCornerShape(10.dp)
-                                )
-                                .clickable {
-                                    onUpdateDraft(
-                                        draft.copy(
-                                            title = preset.title,
-                                            slug = HabitEntity.generateSlug(preset.title),
-                                            category = preset.category,
-                                            colorKey = preset.colorKey,
-                                            iconKey = preset.iconKey,
-                                            identityStatement = preset.identityStatement,
-                                            cueAnchor = preset.cueAnchor,
-                                            microStarter = preset.microStarter,
-                                            temptationReward = preset.temptationReward
-                                        )
-                                    )
-                                }
-                                .padding(horizontal = 12.dp, vertical = 7.dp)
-                        ) {
-                            Text(
-                                text = preset.label.uppercase(Locale.US),
-                                style = TesseraType.TelemetryBadge,
-                                color = if (isMatch) selectedPalette.onAccentFor(colors.isDark)
-                                else colors.textPrimary
-                            )
-                        }
-                    }
-                }
-            }
-
-            // 1c. Live Synthesized Sentence Blueprint (Atoms × Sikhi Ghāṛat / Sahaj / Chauka)
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                color = colors.surfaceCard,
-                border = BorderStroke(1.dp, selectedPalette.colorForLevel(3, colors.isDark))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "SACHEE TAKSAAL · LIVE SENTENCE BLUEPRINT",
-                            style = TesseraType.MicroAxis,
-                            color = selectedPalette.colorForLevel(4, colors.isDark)
-                        )
-                        Text(
-                            text = "GHARAT × SAHAJ",
-                            style = TesseraType.MicroAxis,
-                            color = colors.textSecondary
-                        )
-                    }
-                    val liveIdentity = draft.identityStatement.ifBlank { "I am someone who shows up daily" }
-                    val liveCue = draft.cueAnchor.ifBlank { "my daily anchor cue" }
-                    val liveAction = draft.title.ifBlank { "practice my habit" }
-                    val liveGateway = draft.microStarter.ifBlank { "2 minutes of steady effort" }
-                    Text(
-                        text = "“$liveIdentity. After I $liveCue, I will $liveAction — or on tough days cast a 2-minute Sahaj vote: $liveGateway.”",
-                        style = TesseraType.CardTitle.copy(fontSize = 14.sp),
-                        color = colors.textPrimary
-                    )
-                }
-            }
-
-            // 2. ATOMIC HABITS: Law 4 — Identity Anchor / Ghāṛat ("Who are you forging?")
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                color = colors.surfaceCard,
-                border = BorderStroke(1.dp, colors.borderHairline)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AutoAwesome,
-                            contentDescription = null,
-                            tint = selectedPalette.colorForLevel(4, colors.isDark),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = "LAW 4 · GHARAT IDENTITY MINT (WHO ARE YOU BECOMING?)",
-                            style = TesseraType.MicroAxis,
-                            color = selectedPalette.colorForLevel(4, colors.isDark)
-                        )
-                    }
-                    Text(
-                        text = "In Japji Sahib (Pauri 38), patience (Dheeraj) is the goldsmith forging character (Gharat). Every check-in casts a vote for your identity.",
-                        style = TesseraType.CardSubtitle,
-                        color = colors.textSecondary
-                    )
-                    OutlinedTextField(
-                        value = draft.identityStatement,
-                        onValueChange = { onUpdateDraft(draft.copy(identityStatement = it)) },
-                        label = { Text("Identity Statement (\"I am the type of person who...\")", style = TesseraType.CardSubtitle) },
-                        placeholder = { Text("e.g. I am a writer who publishes daily, or I am a vocalist who honors daily riyaz", style = TesseraType.CardSubtitle) },
-                        singleLine = false,
-                        maxLines = 2,
-                        colors = editorTextFieldColors(selectedPalette.level3),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-
-            // 3. ATOMIC HABITS: Law 1 — Cue & Habit Stacking ("Make It Obvious")
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                color = colors.surfaceCard,
-                border = BorderStroke(1.dp, colors.borderHairline)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Bolt,
-                            contentDescription = null,
-                            tint = selectedPalette.colorForLevel(4, colors.isDark),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = "LAW 1 · CHAUKA ANCHOR & STACKING (MAKE IT OBVIOUS)",
-                            style = TesseraType.MicroAxis,
-                            color = selectedPalette.colorForLevel(4, colors.isDark)
-                        )
-                    }
-
-                    OutlinedTextField(
-                        value = draft.title,
-                        onValueChange = { newTitle ->
-                            val updatedSlug = if (!draft.slugManuallyEdited) {
-                                HabitEntity.generateSlug(newTitle)
-                            } else draft.slug
-                            onUpdateDraft(draft.copy(title = newTitle, slug = updatedSlug))
-                        },
-                        label = { Text("Full Habit Session (“I will...”)", style = TesseraType.CardSubtitle) },
-                        placeholder = { Text("e.g. Write 500 Words, Vocal Riyaz, Strength Session, Log Calories", style = TesseraType.CardSubtitle) },
-                        singleLine = true,
-                        colors = editorTextFieldColors(selectedPalette.level3),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = draft.cueAnchor,
-                        onValueChange = { onUpdateDraft(draft.copy(cueAnchor = it)) },
-                        label = { Text("Anchor Cue (“After I...”)", style = TesseraType.CardSubtitle) },
-                        placeholder = { Text("e.g. pour my morning coffee, warm up my voice, plate my first meal", style = TesseraType.CardSubtitle) },
-                        singleLine = false,
-                        maxLines = 2,
-                        colors = editorTextFieldColors(selectedPalette.level3),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-
-            // 4. ATOMIC HABITS: Law 3 — The 2-Minute Sahaj Gateway Rule ("Make It Easy")
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                color = colors.surfaceCard,
-                border = BorderStroke(1.dp, colors.borderHairline)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Timer,
-                            contentDescription = null,
-                            tint = selectedPalette.colorForLevel(4, colors.isDark),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = "LAW 3 · 2-MINUTE SAHAJ GATEWAY (NEVER MISS TWICE)",
-                            style = TesseraType.MicroAxis,
-                            color = selectedPalette.colorForLevel(4, colors.isDark)
-                        )
-                    }
-                    Text(
-                        text = "Sahaj pakai so meetha hoi — what ripens slowly and steadily is sweetest. Logging your 2-minute gateway lights up your tile in Level 2 shade and protects your streak on exhausting days.",
-                        style = TesseraType.CardSubtitle,
-                        color = colors.textSecondary
-                    )
-                    OutlinedTextField(
-                        value = draft.microStarter,
-                        onValueChange = { onUpdateDraft(draft.copy(microStarter = it)) },
-                        label = { Text("2-Minute Sahaj Gateway (“On low-energy days, I will at least...”)", style = TesseraType.CardSubtitle) },
-                        placeholder = { Text("e.g. Write 1 true sentence, 2m tanpura drone, lace up gym shoes", style = TesseraType.CardSubtitle) },
-                        singleLine = false,
-                        maxLines = 2,
-                        colors = editorTextFieldColors(selectedPalette.level3),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-
-            // 5. ATOMIC HABITS: Law 2 — Temptation Bundling ("Make It Attractive")
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                color = colors.surfaceCard,
-                border = BorderStroke(1.dp, colors.borderHairline)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AutoAwesome,
-                            contentDescription = null,
-                            tint = selectedPalette.colorForLevel(4, colors.isDark),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = "LAW 2: TEMPTATION BUNDLING (MAKE IT ATTRACTIVE)",
-                            style = TesseraType.MicroAxis,
-                            color = selectedPalette.colorForLevel(4, colors.isDark)
-                        )
-                    }
-                    Text(
-                        text = "Pair an action you NEED to do with an action you WANT to do. Reward anticipation releases dopamine.",
-                        style = TesseraType.CardSubtitle,
-                        color = colors.textSecondary
-                    )
-                    OutlinedTextField(
-                        value = draft.temptationReward,
-                        onValueChange = { onUpdateDraft(draft.copy(temptationReward = it)) },
-                        label = { Text("Temptation Bundle Reward (\"Then I get to...\")", style = TesseraType.CardSubtitle) },
-                        placeholder = { Text("e.g. Listen to my favourite podcast, drink artisanal espresso, browse tech news", style = TesseraType.CardSubtitle) },
-                        singleLine = false,
-                        maxLines = 2,
-                        colors = editorTextFieldColors(selectedPalette.level3),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-
-            // 6. Category Selector
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("CATEGORY TAG", style = TesseraType.MicroAxis, color = colors.textMuted)
-                val presetCategories = listOf("Focus", "Fitness", "Mind", "Health", "Craft", "Finance")
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    presetCategories.forEach { cat ->
-                        val active = draft.category.equals(cat, ignoreCase = true)
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (active) selectedPalette.colorForLevel(4, colors.isDark) else colors.surfaceCard)
-                                .border(
-                                    1.dp,
-                                    if (active) selectedPalette.colorForLevel(4, colors.isDark) else colors.borderHairline,
-                                    RoundedCornerShape(8.dp)
-                                )
-                                .clickable { onUpdateDraft(draft.copy(category = cat)) }
-                                .padding(horizontal = 12.dp, vertical = 7.dp)
-                        ) {
-                            Text(
-                                text = cat.uppercase(Locale.US),
-                                style = TesseraType.TelemetryBadge,
-                                color = if (active) selectedPalette.onAccentFor(colors.isDark) else colors.textSecondary
-                            )
-                        }
-                    }
-                }
-            }
-
-            // 8. Quantitative Target & Weekly Cadence
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                color = colors.surfaceCard,
-                border = BorderStroke(1.dp, colors.borderHairline)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text("DAILY TARGET INTENSITY", style = TesseraType.MicroAxis, color = colors.textMuted)
-                            Text(
-                                text = if (draft.targetPerDay <= 1) "Binary (Done / Not Done)" else "Multi-Shade (${draft.targetPerDay} ${draft.unitLabel}/day)",
-                                style = TesseraType.CardSubtitle,
-                                color = colors.textPrimary
-                            )
-                        }
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            StepperIconButton(Icons.Rounded.Remove) {
-                                onUpdateDraft(draft.copy(targetPerDay = (draft.targetPerDay - 1).coerceAtLeast(1)))
-                            }
-                            Text(
-                                text = "${draft.targetPerDay}x",
-                                style = TesseraType.TelemetryMedium,
-                                color = selectedPalette.colorForLevel(4, colors.isDark)
-                            )
-                            StepperIconButton(Icons.Rounded.Add) {
-                                onUpdateDraft(draft.copy(targetPerDay = (draft.targetPerDay + 1).coerceAtMost(24)))
-                            }
-                        }
-                    }
-
-                    if (draft.targetPerDay > 1) {
-                        OutlinedTextField(
-                            value = draft.unitLabel,
-                            onValueChange = { onUpdateDraft(draft.copy(unitLabel = it)) },
-                            label = { Text("Unit Label (e.g. sessions, pomodoros, glasses, pages)", style = TesseraType.CardSubtitle) },
-                            singleLine = true,
-                            colors = editorTextFieldColors(selectedPalette.level3),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text("WEEKLY GOAL CADENCE", style = TesseraType.MicroAxis, color = colors.textMuted)
-                            Text(
-                                text = "${draft.weeklyGoalDays} days per week",
-                                style = TesseraType.CardSubtitle,
-                                color = colors.textPrimary
-                            )
-                        }
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            StepperIconButton(Icons.Rounded.Remove) {
-                                onUpdateDraft(draft.copy(weeklyGoalDays = (draft.weeklyGoalDays - 1).coerceAtLeast(1)))
-                            }
-                            Text(
-                                text = "${draft.weeklyGoalDays}D/WK",
-                                style = TesseraType.TelemetryBadge,
-                                color = colors.textPrimary
-                            )
-                            StepperIconButton(Icons.Rounded.Add) {
-                                onUpdateDraft(draft.copy(weeklyGoalDays = (draft.weeklyGoalDays + 1).coerceAtMost(7)))
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 9. 8-Palette 5-Stop Chromatic Swatch Picker
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("5-STOP CHROMATIC PALETTE", style = TesseraType.MicroAxis, color = colors.textMuted)
-                val paletteRows = HabitPalette.allPalettes.chunked(2)
-                paletteRows.forEach { pair ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        pair.forEach { spec ->
-                            val isSelected = spec.key == selectedPalette.key
-                            Surface(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable { onUpdateDraft(draft.copy(colorKey = spec.key)) },
-                                shape = RoundedCornerShape(12.dp),
-                                color = colors.surfaceCard,
-                                border = BorderStroke(
-                                    width = if (isSelected) 1.5.dp else 1.dp,
-                                    color = if (isSelected) spec.colorForLevel(4, colors.isDark) else colors.borderHairline
-                                )
-                            ) {
-                                Column(modifier = Modifier.padding(10.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = spec.displayName,
-                                            style = TesseraType.CardSubtitle,
-                                            color = colors.textPrimary
-                                        )
-                                        if (isSelected) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.Check,
-                                                contentDescription = null,
-                                                tint = spec.colorForLevel(4, colors.isDark),
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                                        for (lvl in 0..4) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .height(10.dp)
-                                                    .clip(RoundedCornerShape(2.dp))
-                                                    .background(spec.colorForLevel(lvl, colors.isDark))
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 10. 24-Icon Minimalist Vector Grid
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("GEOMETRIC ICON GLYPH", style = TesseraType.MicroAxis, color = colors.textMuted)
-                val iconRows = HabitIcons.allIcons.chunked(6)
-                iconRows.forEach { rowIcons ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        rowIcons.forEach { option ->
-                            val isSelected = option.key == draft.iconKey
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(44.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(
-                                        if (isSelected) selectedPalette.colorForLevel(1, colors.isDark)
-                                        else colors.surfaceCard
-                                    )
-                                    .border(
-                                        width = if (isSelected) 1.5.dp else 1.dp,
-                                        color = if (isSelected) selectedPalette.colorForLevel(4, colors.isDark)
-                                        else colors.borderHairline,
-                                        shape = RoundedCornerShape(10.dp)
-                                    )
-                                    .clickable { onUpdateDraft(draft.copy(iconKey = option.key)) },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = option.icon,
-                                    contentDescription = option.label,
-                                    tint = if (isSelected) selectedPalette.colorForLevel(4, colors.isDark)
-                                    else colors.textSecondary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 11. External API Slug (#)
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("EXTERNAL API / INTENT SLUG (#)", style = TesseraType.MicroAxis, color = colors.textMuted)
-                OutlinedTextField(
-                    value = draft.slug,
-                    onValueChange = { raw ->
-                        val cleaned = raw.lowercase(Locale.US).replace(Regex("[^a-z0-9-]+"), "-")
-                        onUpdateDraft(draft.copy(slug = cleaned, slugManuallyEdited = true))
-                    },
-                    placeholder = { Text("e.g. deep-work", style = TesseraType.CodeSnippet) },
-                    textStyle = TesseraType.CodeSnippet.copy(color = colors.textPrimary),
-                    singleLine = true,
-                    colors = editorTextFieldColors(selectedPalette.level3),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            // 12. Save Button
-            Button(
-                onClick = { onSaveHabit(draft.toHabitEntity()) },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = selectedPalette.colorForLevel(4, colors.isDark),
-                    contentColor = selectedPalette.onAccentFor(colors.isDark)
-                ),
-                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp)
+                    .padding(
+                        start = TesseraDimens.ScreenPadding,
+                        end = TesseraDimens.SpaceS,
+                        top = TesseraDimens.SpaceM,
+                        bottom = TesseraDimens.SpaceXs
+                    ),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (isEditing) "SAVE RITUAL CHANGES" else "FORGE RITUAL (#$effectiveSlug)",
-                    style = TesseraType.TelemetryMedium
+                    text = if (isEditing) "Edit habit" else "New habit",
+                    style = TesseraType.Headline,
+                    color = colors.textPrimary,
+                    modifier = Modifier.weight(1f)
+                )
+                TesseraIconButton(
+                    icon = Icons.Rounded.Close,
+                    contentDescription = "Close",
+                    onClick = onDismiss,
+                    filled = false
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Column(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        horizontal = TesseraDimens.ScreenPadding,
+                        vertical = TesseraDimens.SpaceM
+                    ),
+                verticalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceXl)
+            ) {
+                EditorTextField(
+                    value = draft.title,
+                    onValueChange = { newTitle ->
+                        val nextSlug = when {
+                            draft.slugManuallyEdited -> draft.slug
+                            newTitle.isBlank() -> ""
+                            else -> HabitEntity.generateSlug(newTitle)
+                        }
+                        onUpdateDraft(draft.copy(title = newTitle, slug = nextSlug))
+                    },
+                    label = "Name",
+                    placeholder = "Write 500 words"
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceS)) {
+                    SectionHeading(text = "Times per day")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceL)
+                    ) {
+                        TargetStepper(
+                            value = draft.targetPerDay,
+                            onValueChange = { onUpdateDraft(draft.copy(targetPerDay = it)) }
+                        )
+                        EditorTextField(
+                            value = draft.unitLabel,
+                            onValueChange = { onUpdateDraft(draft.copy(unitLabel = it)) },
+                            label = "Unit",
+                            placeholder = "times, glasses",
+                            capitalization = KeyboardCapitalization.None,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Text(
+                        text = "Most habits are once a day.",
+                        style = TesseraType.Supporting,
+                        color = colors.textSecondary,
+                        modifier = Modifier.padding(horizontal = TesseraDimens.SpaceXs)
+                    )
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceS)) {
+                    EditorTextField(
+                        value = draft.category,
+                        onValueChange = { onUpdateDraft(draft.copy(category = it)) },
+                        label = "Category (optional)",
+                        placeholder = "Health"
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceS)
+                    ) {
+                        categorySuggestions.forEach { suggestion ->
+                            TesseraChip(
+                                text = suggestion,
+                                selected = draft.category.trim().equals(suggestion, ignoreCase = true),
+                                onClick = { onUpdateDraft(draft.copy(category = suggestion)) },
+                                modifier = Modifier.heightIn(min = TesseraDimens.TouchTarget)
+                            )
+                        }
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceS)) {
+                    SectionHeading(text = "Icon")
+                    IconPicker(
+                        selectedKey = draft.iconKey,
+                        onSelect = { onUpdateDraft(draft.copy(iconKey = it)) }
+                    )
+                }
+
+                EditorTextField(
+                    value = draft.description,
+                    onValueChange = { onUpdateDraft(draft.copy(description = it)) },
+                    label = "Notes (optional)",
+                    placeholder = "Anything worth remembering about this habit",
+                    singleLine = false,
+                    minLines = 2,
+                    maxLines = 5
+                )
+
+                Column {
+                    TesseraDivider()
+                    CollapsibleHeader(
+                        title = "Why and how (optional)",
+                        expanded = whyExpanded,
+                        onToggle = { whyExpanded = !whyExpanded }
+                    )
+                    if (whyExpanded) {
+                        Column(
+                            modifier = Modifier.padding(bottom = TesseraDimens.SpaceL),
+                            verticalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceM)
+                        ) {
+                            EditorTextField(
+                                value = draft.identityStatement,
+                                onValueChange = { onUpdateDraft(draft.copy(identityStatement = it)) },
+                                label = "Who this makes me",
+                                placeholder = "I'm someone who writes every day",
+                                singleLine = false,
+                                maxLines = 3
+                            )
+                            EditorTextField(
+                                value = draft.cueAnchor,
+                                onValueChange = { onUpdateDraft(draft.copy(cueAnchor = it)) },
+                                label = "When I'll do it",
+                                placeholder = "After morning coffee",
+                                singleLine = false,
+                                maxLines = 3
+                            )
+                            EditorTextField(
+                                value = draft.microStarter,
+                                onValueChange = { onUpdateDraft(draft.copy(microStarter = it)) },
+                                label = "Two-minute version",
+                                placeholder = "Write one sentence",
+                                singleLine = false,
+                                maxLines = 3
+                            )
+                            EditorTextField(
+                                value = draft.temptationReward,
+                                onValueChange = { onUpdateDraft(draft.copy(temptationReward = it)) },
+                                label = "Reward",
+                                placeholder = "Tea on the balcony",
+                                singleLine = false,
+                                maxLines = 3
+                            )
+                        }
+                    }
+
+                    TesseraDivider()
+                    CollapsibleHeader(
+                        title = "Automation",
+                        expanded = automationExpanded,
+                        onToggle = { automationExpanded = !automationExpanded }
+                    )
+                    if (automationExpanded) {
+                        EditorTextField(
+                            value = draft.slug,
+                            onValueChange = { raw ->
+                                val cleaned = raw
+                                    .lowercase(Locale.US)
+                                    .replace(Regex("[^a-z0-9-]+"), "-")
+                                onUpdateDraft(draft.copy(slug = cleaned, slugManuallyEdited = true))
+                            },
+                            label = "Automation ID",
+                            placeholder = "write-500-words",
+                            supportingText = "Used by Tasker, Routines and deep links to log this habit.",
+                            textStyle = TesseraType.Code,
+                            capitalization = KeyboardCapitalization.None,
+                            keyboardType = KeyboardType.Ascii
+                        )
+                    }
+                }
+            }
+
+            // Actions stay visible above the keyboard.
+            Column(modifier = Modifier.fillMaxWidth()) {
+                TesseraDivider()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = TesseraDimens.ScreenPadding,
+                            vertical = TesseraDimens.SpaceM
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceM)
+                ) {
+                    if (draft.hasUnsavedChanges) {
+                        TesseraSecondaryButton(
+                            text = "Discard",
+                            onClick = onDiscardDraft
+                        )
+                    }
+                    TesseraPrimaryButton(
+                        text = if (isEditing) "Save changes" else "Save habit",
+                        onClick = { onSaveHabit(draft.toHabitEntity()) },
+                        enabled = draft.title.isNotBlank(),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun StepperIconButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
+private fun EditorTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    supportingText: String? = null,
+    singleLine: Boolean = true,
+    minLines: Int = 1,
+    maxLines: Int = 1,
+    textStyle: TextStyle = TesseraType.Body,
+    capitalization: KeyboardCapitalization = KeyboardCapitalization.Sentences,
+    keyboardType: KeyboardType = KeyboardType.Text
+) {
+    val supportingContent: (@Composable () -> Unit)? = if (supportingText != null) {
+        { Text(text = supportingText, style = TesseraType.Supporting) }
+    } else {
+        null
+    }
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier.fillMaxWidth(),
+        textStyle = textStyle,
+        label = { Text(text = label) },
+        placeholder = { Text(text = placeholder, style = textStyle) },
+        supportingText = supportingContent,
+        keyboardOptions = KeyboardOptions(
+            capitalization = capitalization,
+            keyboardType = keyboardType
+        ),
+        singleLine = singleLine,
+        minLines = if (singleLine) 1 else minLines,
+        maxLines = if (singleLine) 1 else maxLines.coerceAtLeast(minLines),
+        shape = RoundedCornerShape(TesseraDimens.RadiusControl),
+        colors = tesseraTextFieldColors()
+    )
+}
+
+@Composable
+private fun TargetStepper(
+    value: Int,
+    onValueChange: (Int) -> Unit
 ) {
     val colors = TesseraTheme.colors
-    Box(
-        modifier = Modifier
-            .size(30.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(colors.surfaceElevated)
-            .border(1.dp, colors.borderHairline, RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
+    val canDecrease = value > MIN_TARGET_PER_DAY
+    val canIncrease = value < MAX_TARGET_PER_DAY
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceS)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = colors.textPrimary,
-            modifier = Modifier.size(15.dp)
+        TesseraIconButton(
+            icon = Icons.Rounded.Remove,
+            contentDescription = "One fewer per day",
+            onClick = { if (canDecrease) onValueChange(value - 1) },
+            modifier = Modifier.background(colors.surfaceElevated, CircleShape),
+            filled = false,
+            tint = if (canDecrease) colors.textPrimary else colors.textSecondary.copy(alpha = 0.4f)
+        )
+        Text(
+            text = value.toString(),
+            style = TesseraType.Title,
+            color = colors.textPrimary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(min = TesseraDimens.SpaceXxl)
+        )
+        TesseraIconButton(
+            icon = Icons.Rounded.Add,
+            contentDescription = "One more per day",
+            onClick = { if (canIncrease) onValueChange(value + 1) },
+            modifier = Modifier.background(colors.surfaceElevated, CircleShape),
+            filled = false,
+            tint = if (canIncrease) colors.textPrimary else colors.textSecondary.copy(alpha = 0.4f)
         )
     }
 }
 
 @Composable
-private fun editorTextFieldColors(accentBorder: androidx.compose.ui.graphics.Color) =
-    OutlinedTextFieldDefaults.colors(
-        focusedTextColor = TesseraTheme.colors.textPrimary,
-        unfocusedTextColor = TesseraTheme.colors.textPrimary,
-        cursorColor = accentBorder,
-        focusedBorderColor = accentBorder,
-        unfocusedBorderColor = TesseraTheme.colors.borderSpecular,
-        focusedContainerColor = TesseraTheme.colors.surfaceAbyss,
-        unfocusedContainerColor = TesseraTheme.colors.surfaceAbyss,
-        focusedLabelColor = accentBorder,
-        unfocusedLabelColor = TesseraTheme.colors.textSecondary,
-        focusedPlaceholderColor = TesseraTheme.colors.textMuted,
-        unfocusedPlaceholderColor = TesseraTheme.colors.textMuted
-    )
+private fun IconPicker(
+    selectedKey: String,
+    onSelect: (String) -> Unit
+) {
+    val colors = TesseraTheme.colors
+    val shape = RoundedCornerShape(TesseraDimens.RadiusControl)
+    // Compare resolved icons so a stored alias key still shows its icon as selected.
+    val selectedIcon = HabitIcons.resolve(selectedKey)
+    Column(verticalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceS)) {
+        HabitIcons.allIcons.chunked(ICONS_PER_ROW).forEach { rowIcons ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceS)
+            ) {
+                rowIcons.forEach { option ->
+                    val isSelected = option.icon == selectedIcon
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = TesseraDimens.TouchTarget)
+                            .clip(shape)
+                            .background(if (isSelected) colors.accent else colors.surfaceElevated)
+                            .selectable(
+                                selected = isSelected,
+                                role = Role.RadioButton,
+                                onClick = { onSelect(option.key) }
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = option.icon,
+                            contentDescription = option.label,
+                            tint = if (isSelected) colors.onAccent else colors.textPrimary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+                // Keep cells in a short last row the same width as the rows above.
+                repeat(ICONS_PER_ROW - rowIcons.size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CollapsibleHeader(
+    title: String,
+    expanded: Boolean,
+    onToggle: () -> Unit
+) {
+    val colors = TesseraTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = TesseraDimens.TouchTarget)
+            .clickable(
+                onClickLabel = if (expanded) "Collapse" else "Expand",
+                role = Role.Button,
+                onClick = onToggle
+            )
+            .padding(horizontal = TesseraDimens.SpaceXs),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = TesseraType.BodyStrong,
+            color = colors.textPrimary,
+            modifier = Modifier.weight(1f)
+        )
+        Icon(
+            imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+            contentDescription = null,
+            tint = colors.textSecondary,
+            modifier = Modifier.size(24.dp)
+        )
+    }
+}
