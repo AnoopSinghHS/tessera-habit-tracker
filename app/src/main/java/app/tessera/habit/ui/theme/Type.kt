@@ -1,146 +1,127 @@
+@file:OptIn(ExperimentalTextApi::class)
+
 package app.tessera.habit.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import app.tessera.habit.R
+
+/** Fraunces: display face, used only for the two largest sizes. Bundled variable font (OFL). */
+val Fraunces = FontFamily(
+    Font(
+        R.font.fraunces,
+        weight = FontWeight.Normal,
+        variationSettings = FontVariation.Settings(
+            FontVariation.weight(400),
+            FontVariation.Setting("SOFT", 50f)
+        )
+    )
+)
+
+/** Libre Franklin: everything else. Bundled variable font (OFL). */
+val LibreFranklin = FontFamily(
+    Font(
+        R.font.libre_franklin,
+        weight = FontWeight.Normal,
+        variationSettings = FontVariation.Settings(FontVariation.weight(400))
+    ),
+    Font(
+        R.font.libre_franklin,
+        weight = FontWeight.SemiBold,
+        variationSettings = FontVariation.Settings(FontVariation.weight(600))
+    )
+)
 
 /**
- * Editorial Serif & Tactile Sans-Serif Typography System.
- * Uses sculptural Serif for the centered date header, large streak numerals,
- * and section titles, paired with clean humanist Sans-Serif for habit titles,
- * subtitles, and controls.
+ * The whole type scale: six sizes (12, 14, 16, 18, 26, 44) and two sans weights.
+ * Nothing the user has to read is smaller than 12sp. No all-caps headings.
  */
 object TesseraType {
-    val EditorialDateHeader = TextStyle(
-        fontFamily = FontFamily.Serif,
+    /** 44sp Fraunces. One per screen at most: the streak number, a hero stat. */
+    val Display = TextStyle(
+        fontFamily = Fraunces,
         fontWeight = FontWeight.Normal,
-        fontSize = 30.sp,
-        lineHeight = 36.sp,
+        fontSize = 44.sp,
+        lineHeight = 48.sp,
         letterSpacing = (-0.5).sp
     )
 
-    val StreakNumber = TextStyle(
-        fontFamily = FontFamily.Serif,
+    /** 26sp Fraunces. Screen titles and sheet titles. */
+    val Headline = TextStyle(
+        fontFamily = Fraunces,
         fontWeight = FontWeight.Normal,
-        fontSize = 34.sp,
-        lineHeight = 38.sp,
-        letterSpacing = (-0.5).sp
-    )
-
-    val DisplayMomentum = TextStyle(
-        fontFamily = FontFamily.Serif,
-        fontWeight = FontWeight.Normal,
-        fontSize = 30.sp,
-        lineHeight = 36.sp,
-        letterSpacing = (-0.5).sp
-    )
-
-    val SectionTitle = TextStyle(
-        fontFamily = FontFamily.Serif,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = (-0.3).sp
-    )
-
-    val CardTitle = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Medium,
-        fontSize = 17.sp,
-        lineHeight = 22.sp,
-        letterSpacing = (-0.1).sp
-    )
-
-    val CardSubtitle = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Normal,
-        fontSize = 13.sp,
-        lineHeight = 18.sp,
-        letterSpacing = 0.sp
-    )
-
-    val StreakLabel = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Normal,
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.sp
-    )
-
-    val TelemetryHero = TextStyle(
-        fontFamily = FontFamily.Serif,
-        fontWeight = FontWeight.Normal,
-        fontSize = 28.sp,
+        fontSize = 26.sp,
         lineHeight = 32.sp,
-        letterSpacing = (-0.4).sp
+        letterSpacing = (-0.2).sp
     )
 
-    val TelemetryMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Medium,
+    /** 18sp semibold. Habit names, card titles. */
+    val Title = TextStyle(
+        fontFamily = LibreFranklin,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 18.sp,
+        lineHeight = 24.sp
+    )
+
+    /** 16sp. Body text, list rows, text field content. */
+    val Body = TextStyle(
+        fontFamily = LibreFranklin,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
+        lineHeight = 24.sp
+    )
+
+    /** 16sp semibold. Emphasised body: row values, primary button text. */
+    val BodyStrong = Body.copy(fontWeight = FontWeight.SemiBold)
+
+    /** 14sp. Supporting text under a title, descriptions, helper text. */
+    val Supporting = TextStyle(
+        fontFamily = LibreFranklin,
+        fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
-        lineHeight = 18.sp,
-        letterSpacing = 0.sp
+        lineHeight = 20.sp
     )
 
-    val TelemetryBadge = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Medium,
+    /** 14sp semibold. Section headings (sentence case), chips, secondary buttons. */
+    val Label = Supporting.copy(fontWeight = FontWeight.SemiBold)
+
+    /** 12sp semibold. Heatmap axes, legends, tab labels. The smallest size allowed. */
+    val Caption = TextStyle(
+        fontFamily = LibreFranklin,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.1.sp
+        lineHeight = 16.sp
     )
 
-    val MicroAxis = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 14.sp,
-        letterSpacing = 0.1.sp
-    )
-
-    val CodeSnippet = TextStyle(
+    /** 14sp monospace. Only for literal code or commands the user copies. */
+    val Code = TextStyle(
         fontFamily = FontFamily.Monospace,
         fontWeight = FontWeight.Normal,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.sp
+        fontSize = 14.sp,
+        lineHeight = 20.sp
     )
 }
 
 val TesseraTypography = Typography(
-    displayLarge = TesseraType.EditorialDateHeader,
-    headlineMedium = TesseraType.SectionTitle,
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Serif,
-        fontWeight = FontWeight.Normal,
-        fontSize = 20.sp,
-        lineHeight = 26.sp,
-        letterSpacing = (-0.2).sp
-    ),
-    titleMedium = TesseraType.CardTitle,
-    titleSmall = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp,
-        lineHeight = 19.sp
-    ),
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Normal,
-        fontSize = 15.sp,
-        lineHeight = 22.sp
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Normal,
-        fontSize = 13.sp,
-        lineHeight = 18.sp
-    ),
-    bodySmall = TesseraType.CardSubtitle,
-    labelLarge = TesseraType.TelemetryMedium,
-    labelMedium = TesseraType.TelemetryBadge,
-    labelSmall = TesseraType.MicroAxis
+    displayLarge = TesseraType.Display,
+    displayMedium = TesseraType.Display,
+    displaySmall = TesseraType.Display,
+    headlineLarge = TesseraType.Headline,
+    headlineMedium = TesseraType.Headline,
+    headlineSmall = TesseraType.Headline,
+    titleLarge = TesseraType.Title,
+    titleMedium = TesseraType.BodyStrong,
+    titleSmall = TesseraType.Label,
+    bodyLarge = TesseraType.Body,
+    bodyMedium = TesseraType.Supporting,
+    bodySmall = TesseraType.Caption,
+    labelLarge = TesseraType.Label,
+    labelMedium = TesseraType.Caption,
+    labelSmall = TesseraType.Caption
 )
