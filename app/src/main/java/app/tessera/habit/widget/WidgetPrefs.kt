@@ -3,8 +3,8 @@ package app.tessera.habit.widget
 import android.content.Context
 
 /**
- * Per-instance SharedPreferences storage for Tessera Home Screen Widgets.
- * Tracks bound habit ID, surface theme ("dark" | "light"), and check-in tap mode ("smart" | "increment").
+ * Settings saved for each placed widget: which habit it shows, its surface
+ * ("dark" or "light") and what a tap on the check-in button does ("smart" or "increment").
  */
 object WidgetPrefs {
 

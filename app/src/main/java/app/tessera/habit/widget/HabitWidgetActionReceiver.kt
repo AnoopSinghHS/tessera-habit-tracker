@@ -4,7 +4,7 @@ import android.appwidget.AppWidgetManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import app.tessera.habit.data.local.HabitLogEntity
+import app.tessera.habit.TesseraApp
 import app.tessera.habit.data.local.TesseraDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,7 +13,11 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 /**
- * Handles 1-tap check-in actions dispatched directly from Samsung One UI Home Screen Widgets.
+ * Handles a tap on a widget's check-in button.
+ *
+ * The count change itself is done by the repository, so widget taps and in-app taps
+ * follow the same rules. Which rule applies depends on the widget's tap setting:
+ * "smart" marks done / undoes (or steps towards the daily target), "increment" adds one.
  */
 class HabitWidgetActionReceiver : BroadcastReceiver() {
 
@@ -49,39 +53,13 @@ class HabitWidgetActionReceiver : BroadcastReceiver() {
                     dao.getAllHabitsWithLogsOnce().firstOrNull { !it.habit.isArchived }?.habit
                 }
 
-                if (habit != null) {
-                    val todayEpoch = LocalDate.now().toEpochDay()
-                    val existingLog = dao.getLogForDate(habit.id, todayEpoch)
-                    val currentCount = existingLog?.count ?: 0
-                    val target = habit.targetPerDay.coerceAtLeast(1)
-                    val tapMode = WidgetPrefs.getTapMode(appContext, appWidgetId)
-
-                    val nextCount = if (tapMode == WidgetPrefs.TAP_MODE_INCREMENT) {
-                        currentCount + 1
+                val repository = (appContext as? TesseraApp)?.repository
+                if (habit != null && repository != null) {
+                    val today = LocalDate.now()
+                    if (WidgetPrefs.getTapMode(appContext, appWidgetId) == WidgetPrefs.TAP_MODE_INCREMENT) {
+                        repository.incrementHabit(habitId = habit.id, date = today)
                     } else {
-                        // Smart Toggle / Quartile Cycle:
-                        // Binary habits toggle 0 <-> 1.
-                        // Multi-step habits increment 0 -> 1 -> ... -> target -> 0.
-                        if (target <= 1) {
-                            if (currentCount >= 1) 0 else 1
-                        } else {
-                            if (currentCount >= target) 0 else currentCount + 1
-                        }
-                    }
-
-                    if (nextCount <= 0) {
-                        dao.deleteLogForDate(habit.id, todayEpoch)
-                    } else {
-                        dao.upsertLog(
-                            HabitLogEntity(
-                                id = existingLog?.id ?: 0L,
-                                habitId = habit.id,
-                                dateEpochDay = todayEpoch,
-                                count = nextCount,
-                                note = existingLog?.note.orEmpty(),
-                                updatedAt = System.currentTimeMillis()
-                            )
-                        )
+                        repository.smartCheckIn(habitId = habit.id, date = today)
                     }
                 }
 

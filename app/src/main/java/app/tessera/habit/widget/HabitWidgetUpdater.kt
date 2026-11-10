@@ -8,32 +8,26 @@ import android.content.Intent
 import android.net.Uri
 import android.view.View
 import android.widget.RemoteViews
-import androidx.compose.ui.graphics.toArgb
 import app.tessera.habit.MainActivity
 import app.tessera.habit.R
-import app.tessera.habit.TesseraApp
 import app.tessera.habit.data.local.TesseraDatabase
 import app.tessera.habit.data.model.HabitWithLogs
-import app.tessera.habit.ui.theme.HabitPalette
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
-import java.util.Locale
 
 /**
- * Coordinates real-time updates for all active Tessera Home Screen Widgets
- * ([HabitHeatmapWidgetProvider] 4x2 Wide and [HabitCompactWidgetProvider] 2x2 Compact).
+ * Redraws the home-screen widgets ([HabitHeatmapWidgetProvider] 4x2 and
+ * [HabitCompactWidgetProvider] 2x2) from the database.
  */
 object HabitWidgetUpdater {
 
     private val updaterScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    /**
-     * Asynchronously refreshes all placed widgets on [Dispatchers.IO].
-     */
+    /** Refreshes every placed widget in the background. */
     fun updateAllWidgets(context: Context) {
         val appContext = context.applicationContext
         updaterScope.launch {
@@ -41,9 +35,7 @@ object HabitWidgetUpdater {
         }
     }
 
-    /**
-     * Synchronously refreshes all placed widgets (must be called from a coroutine).
-     */
+    /** Refreshes every placed widget and returns when done. */
     suspend fun updateAllWidgetsSync(context: Context) = withContext(Dispatchers.IO) {
         val appContext = context.applicationContext
         val appWidgetManager = AppWidgetManager.getInstance(appContext)
@@ -58,11 +50,7 @@ object HabitWidgetUpdater {
         if (wideIds.isEmpty() && compactIds.isEmpty()) return@withContext
 
         val dao = TesseraDatabase.getInstance(appContext).habitDao()
-        var allHabits = runCatching { dao.getAllHabitsWithLogsOnce() }.getOrDefault(emptyList())
-        if (allHabits.isEmpty()) {
-            runCatching { (appContext as? TesseraApp)?.repository?.ensureSeeded() }
-            allHabits = runCatching { dao.getAllHabitsWithLogsOnce() }.getOrDefault(emptyList())
-        }
+        val allHabits = runCatching { dao.getAllHabitsWithLogsOnce() }.getOrDefault(emptyList())
 
         for (widgetId in wideIds) {
             renderAndPushWidget(
@@ -85,9 +73,7 @@ object HabitWidgetUpdater {
         }
     }
 
-    /**
-     * Asynchronously updates a single widget instance.
-     */
+    /** Refreshes one widget in the background. */
     fun updateSingleWidget(context: Context, appWidgetId: Int, isCompact: Boolean = false) {
         val appContext = context.applicationContext
         updaterScope.launch {
@@ -95,9 +81,7 @@ object HabitWidgetUpdater {
         }
     }
 
-    /**
-     * Synchronously updates a single widget instance.
-     */
+    /** Refreshes one widget and returns when done. */
     suspend fun updateSingleWidgetSync(
         context: Context,
         appWidgetId: Int,
@@ -113,11 +97,7 @@ object HabitWidgetUpdater {
         }
 
         val dao = TesseraDatabase.getInstance(appContext).habitDao()
-        var allHabits = runCatching { dao.getAllHabitsWithLogsOnce() }.getOrDefault(emptyList())
-        if (allHabits.isEmpty()) {
-            runCatching { (appContext as? TesseraApp)?.repository?.ensureSeeded() }
-            allHabits = runCatching { dao.getAllHabitsWithLogsOnce() }.getOrDefault(emptyList())
-        }
+        val allHabits = runCatching { dao.getAllHabitsWithLogsOnce() }.getOrDefault(emptyList())
 
         renderAndPushWidget(
             context = appContext,
@@ -137,12 +117,13 @@ object HabitWidgetUpdater {
     ) {
         val configuredHabitId = WidgetPrefs.getHabitId(context, appWidgetId)
         val isDark = WidgetPrefs.isDarkTheme(context, appWidgetId)
+        val colors = WidgetColors.of(isDark)
 
         val selectedHabit = allHabits.firstOrNull { it.habit.id == configuredHabitId }
             ?: allHabits.firstOrNull { !it.habit.isArchived }
             ?: allHabits.firstOrNull()
 
-        // Persist fallback habit binding if widget was placed directly without config
+        // A widget placed without going through setup shows the first habit; remember it.
         if (selectedHabit != null && configuredHabitId <= 0L) {
             WidgetPrefs.setHabitId(context, appWidgetId, selectedHabit.habit.id)
         }
@@ -156,21 +137,19 @@ object HabitWidgetUpdater {
 
         val bgRes = if (isDark) R.drawable.widget_bg_dark else R.drawable.widget_bg_light
         views.setInt(R.id.widget_root, "setBackgroundResource", bgRes)
-
-        // Warm Limestone (#F5F3EF) on Warm Matte Carbon (#161514), or Warm Ink (#1C1B19) on Limestone (#FCFBF9)
-        val primaryTextColor = if (isDark) 0xFFF5F3EF.toInt() else 0xFF1C1B19.toInt()
-        val secondaryTextColor = if (isDark) 0xFF9A948A.toInt() else 0xFF6E6960.toInt()
+        views.setTextColor(R.id.widget_habit_title, colors.textPrimary)
+        views.setTextColor(R.id.widget_streak_badge, colors.accent)
+        views.setTextColor(R.id.widget_habit_subtitle, colors.textSecondary)
 
         if (selectedHabit == null) {
-            views.setTextViewText(R.id.widget_habit_title, "Tessera Rituals")
-            views.setTextColor(R.id.widget_habit_title, primaryTextColor)
+            views.setTextViewText(R.id.widget_habit_title, "No habits yet")
+            views.setViewVisibility(R.id.widget_streak_badge, View.GONE)
             views.setTextViewText(
-                R.id.widget_streak_badge,
-                if (isCompact) "0d streak" else "0 day streak"
+                R.id.widget_habit_subtitle,
+                if (isCompact) "Tap to add one" else "Tap to add one in Tessera"
             )
-            views.setTextViewText(R.id.widget_habit_subtitle, "Tap to configure ritual")
-            views.setTextColor(R.id.widget_habit_subtitle, secondaryTextColor)
-            views.setTextViewText(R.id.widget_check_in_btn, "+1")
+            setCheckInButton(views, isDark, colors, label = "+", filled = false)
+            views.setContentDescription(R.id.widget_check_in_btn, "Open Tessera")
 
             val emptyBitmap = if (isCompact) {
                 WidgetHeatmapBitmapRenderer.renderCompactHeatmap(context, null, isDark)
@@ -197,92 +176,74 @@ object HabitWidgetUpdater {
         }
 
         val habit = selectedHabit.habit
-        val palette = HabitPalette.resolve(habit.colorKey)
-        val accentArgb = palette.levelColorArgb(4, isDark)
         val stats = selectedHabit.computeStats()
         val todayCount = selectedHabit.countForDate(LocalDate.now())
         val target = habit.targetPerDay.coerceAtLeast(1)
         val isCompletedToday = todayCount >= target
 
-        // Header Title & Clean Editorial Streak Text (Zero Emojis)
         views.setTextViewText(R.id.widget_habit_title, habit.title)
-        views.setTextColor(R.id.widget_habit_title, primaryTextColor)
 
-        val streakText = if (isCompact) {
-            "${stats.currentStreak}d streak"
+        // Second line: "23-day streak · Done today" (4x2) or "23 days · Done" (2x2).
+        val streak = stats.currentStreak
+        val hasStreak = streak > 0
+        if (hasStreak) {
+            views.setTextViewText(
+                R.id.widget_streak_badge,
+                if (isCompact) streakShort(streak) else "$streak-day streak"
+            )
+            views.setViewVisibility(R.id.widget_streak_badge, View.VISIBLE)
         } else {
-            "${stats.currentStreak} day streak"
+            views.setViewVisibility(R.id.widget_streak_badge, View.GONE)
         }
-        views.setTextViewText(R.id.widget_streak_badge, streakText)
-        views.setTextColor(R.id.widget_streak_badge, accentArgb)
-        views.setViewVisibility(R.id.widget_streak_badge, View.VISIBLE)
 
-        val subtitleText = if (isCompact) {
-            if (target > 1) "$todayCount/$target" else if (isCompletedToday) "Done" else "0/1"
-        } else {
-            val statusPart = if (target > 1) {
-                "$todayCount/$target ${habit.unitLabel.lowercase(Locale.US)}"
-            } else if (isCompletedToday) {
-                "Completed today"
-            } else {
-                "Pending today"
-            }
-            "${habit.slug} · $statusPart"
+        val status = when {
+            target > 1 && isCompact -> "$todayCount of $target"
+            target > 1 -> "$todayCount of $target today"
+            isCompletedToday && isCompact -> "Done"
+            isCompletedToday -> "Done today"
+            isCompact && hasStreak -> ""
+            else -> "Not done yet"
+        }
+        val subtitleText = when {
+            status.isEmpty() -> ""
+            hasStreak -> " \u00B7 $status"
+            else -> status
         }
         views.setTextViewText(R.id.widget_habit_subtitle, subtitleText)
-        views.setTextColor(R.id.widget_habit_subtitle, secondaryTextColor)
 
-        if (!isCompact) {
-            views.setTextViewText(R.id.widget_color_dot, resolveGlyphForIconKey(habit.iconKey))
-            views.setTextColor(R.id.widget_color_dot, accentArgb)
-        }
-
-        // Tactile Circular 1-Tap Check-In Button State
         val checkButtonLabel = when {
-            isCompletedToday -> "✓"
-            target > 1 && todayCount > 0 -> "$todayCount/$target"
-            else -> "+1"
+            isCompletedToday -> "\u2713"
+            todayCount <= 0 -> "+"
+            // Part-way through a several-times-a-day habit. "2/3" fits; longer ones show the count.
+            todayCount < 10 && target < 10 -> "$todayCount/$target"
+            else -> todayCount.toString()
         }
-        views.setTextViewText(R.id.widget_check_in_btn, checkButtonLabel)
+        setCheckInButton(views, isDark, colors, label = checkButtonLabel, filled = isCompletedToday)
+        views.setContentDescription(
+            R.id.widget_check_in_btn,
+            if (isCompletedToday) {
+                "${habit.title}: done today"
+            } else {
+                "Check in: ${habit.title}"
+            }
+        )
 
-        if (isCompletedToday) {
-            views.setInt(
-                R.id.widget_check_in_btn,
-                "setBackgroundResource",
-                R.drawable.widget_btn_checkin_done
-            )
-            views.setTextColor(R.id.widget_check_in_btn, palette.onAccent.toArgb())
-        } else {
-            views.setInt(
-                R.id.widget_check_in_btn,
-                "setBackgroundResource",
-                R.drawable.widget_btn_checkin_active
-            )
-            views.setTextColor(
-                R.id.widget_check_in_btn,
-                if (todayCount > 0) accentArgb else primaryTextColor
-            )
-        }
-
-        // High-DPI Contribution Matrix Bitmap
         val heatmapBitmap = if (isCompact) {
             WidgetHeatmapBitmapRenderer.renderCompactHeatmap(
                 context = context,
                 habitWithLogs = selectedHabit,
-                isDarkTheme = isDark,
-                weeks = 8
+                isDarkTheme = isDark
             )
         } else {
             WidgetHeatmapBitmapRenderer.renderWideHeatmap(
                 context = context,
                 habitWithLogs = selectedHabit,
-                isDarkTheme = isDark,
-                weeks = 22
+                isDarkTheme = isDark
             )
         }
         views.setImageViewBitmap(R.id.widget_heatmap_image, heatmapBitmap)
 
-        // PendingIntent 1: 1-Tap Check-In Broadcast
+        // Button: check in without opening the app.
         val checkInIntent = Intent(context, HabitWidgetActionReceiver::class.java).apply {
             action = HabitWidgetActionReceiver.ACTION_WIDGET_CHECK_IN
             data = Uri.parse("tessera://widget/checkin/$appWidgetId/${habit.id}")
@@ -297,7 +258,7 @@ object HabitWidgetUpdater {
         )
         views.setOnClickPendingIntent(R.id.widget_check_in_btn, checkInPendingIntent)
 
-        // PendingIntent 2: Deep-Link to Habit Detail Sheet in MainActivity
+        // Anywhere else: open this habit in the app.
         val detailIntent = Intent(
             Intent.ACTION_VIEW,
             Uri.parse("tessera://habit/${habit.slug}"),
@@ -318,24 +279,32 @@ object HabitWidgetUpdater {
         appWidgetManager.updateAppWidget(appWidgetId, views)
     }
 
+    private fun streakShort(streak: Int): String {
+        return if (streak == 1) "1 day" else "$streak days"
+    }
+
     /**
-     * Resolves an architectural monochrome geometric glyph (zero colorful emojis).
+     * Styles the round check-in button: filled accent when today is done, accent outline
+     * otherwise. The circle drawables come in light and dark versions.
      */
-    private fun resolveGlyphForIconKey(iconKey: String): String {
-        return when (iconKey.trim().lowercase(Locale.US)) {
-            "bolt", "zap", "focus" -> "◆"
-            "terminal", "cli", "code" -> "⌘"
-            "fitness", "dumbbell", "gym" -> "✦"
-            "run", "running", "bicycle" -> "▸"
-            "book", "read" -> "▤"
-            "water", "hydration" -> "◈"
-            "meditation", "brain" -> "◎"
-            "flame", "fire" -> "▲"
-            "heart" -> "♥"
-            "leaf", "spa" -> "❖"
-            "sun", "morning" -> "☼"
-            "sleep", "moon" -> "☾"
-            else -> "▣"
+    private fun setCheckInButton(
+        views: RemoteViews,
+        isDark: Boolean,
+        colors: WidgetColors,
+        label: String,
+        filled: Boolean
+    ) {
+        val backgroundRes = when {
+            filled && isDark -> R.drawable.widget_btn_checkin_done_dark
+            filled -> R.drawable.widget_btn_checkin_done_light
+            isDark -> R.drawable.widget_btn_checkin_todo_dark
+            else -> R.drawable.widget_btn_checkin_todo_light
         }
+        views.setInt(R.id.widget_check_in_label, "setBackgroundResource", backgroundRes)
+        views.setTextViewText(R.id.widget_check_in_label, label)
+        views.setTextColor(
+            R.id.widget_check_in_label,
+            if (filled) colors.onAccent else colors.accent
+        )
     }
 }

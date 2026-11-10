@@ -5,10 +5,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.os.Bundle
 
-/**
- * 4x2 Wide Architectural GitHub Heatmap Widget Provider for Samsung One UI Home Screen.
- * Renders an 18-week contribution matrix with streak badge and 1-tap check-in button.
- */
+/** The 4x2 widget: a habit's recent weeks as a heatmap, its streak and a check-in button. */
 class HabitHeatmapWidgetProvider : AppWidgetProvider() {
 
     override fun onEnabled(context: Context) {

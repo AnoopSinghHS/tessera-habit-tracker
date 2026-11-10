@@ -10,34 +10,27 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,28 +48,28 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import app.tessera.habit.TesseraApp
+import app.tessera.habit.R
 import app.tessera.habit.data.local.TesseraDatabase
 import app.tessera.habit.data.model.HabitWithLogs
-import app.tessera.habit.ui.components.HabitIcons
-import app.tessera.habit.ui.theme.HabitPalette
+import app.tessera.habit.ui.components.SectionHeading
+import app.tessera.habit.ui.components.TesseraCard
+import app.tessera.habit.ui.components.TesseraChip
+import app.tessera.habit.ui.components.TesseraDimens
+import app.tessera.habit.ui.components.TesseraDivider
+import app.tessera.habit.ui.components.TesseraIconButton
+import app.tessera.habit.ui.components.TesseraPrimaryButton
 import app.tessera.habit.ui.theme.TesseraTheme
-import app.tessera.habit.ui.theme.ThemeMode
-import kotlinx.coroutines.Dispatchers
+import app.tessera.habit.ui.theme.TesseraType
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 /**
- * Configuration Activity launched when placing or reconfiguring a Tessera Home Screen Widget
- * on the Samsung Galaxy S26 Ultra (One UI 8).
- *
- * Styled in the Dieter Rams (Braun) / Things 3 / Kinfolk Warm Matte Carbon & Warm Limestone aesthetic.
+ * Shown when a widget is added to the home screen (or reconfigured): pick the habit,
+ * the widget's background and what a tap on its check-in button does.
  */
 class HabitWidgetConfigureActivity : ComponentActivity() {
 
@@ -86,7 +79,7 @@ class HabitWidgetConfigureActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        // Default to RESULT_CANCELED if user backs out before saving
+        // If the user backs out, the launcher must not add the widget.
         setResult(Activity.RESULT_CANCELED)
 
         appWidgetId = intent?.extras?.getInt(
@@ -107,22 +100,17 @@ class HabitWidgetConfigureActivity : ComponentActivity() {
         val dao = TesseraDatabase.getInstance(applicationContext).habitDao()
 
         setContent {
-            TesseraTheme(themeMode = ThemeMode.OBSIDIAN_DARK) {
+            TesseraTheme {
                 val scope = rememberCoroutineScope()
-                val habits by dao.observeActiveHabitsWithLogs().collectAsState(initial = emptyList())
-
-                LaunchedEffect(Unit) {
-                    withContext(Dispatchers.IO) {
-                        runCatching {
-                            (application as? TesseraApp)?.repository?.ensureSeeded()
-                        }
-                    }
-                }
+                // null until the first database read arrives, so the empty state does not flash.
+                val loadedHabits: List<HabitWithLogs>? by dao.observeActiveHabitsWithLogs()
+                    .collectAsState(initial = null)
+                val habits: List<HabitWithLogs> = loadedHabits ?: emptyList()
 
                 var selectedHabitId by remember {
                     mutableLongStateOf(WidgetPrefs.getHabitId(this, appWidgetId))
                 }
-                var isDarkWidgetTheme by remember {
+                var isDarkWidget by remember {
                     mutableStateOf(WidgetPrefs.isDarkTheme(this, appWidgetId))
                 }
                 var selectedTapMode by remember {
@@ -139,13 +127,14 @@ class HabitWidgetConfigureActivity : ComponentActivity() {
                     ?: habits.firstOrNull()
 
                 WidgetConfigureScreen(
+                    isLoading = loadedHabits == null,
                     habits = habits,
                     selectedHabit = selectedHabit,
                     isCompactWidget = isCompactWidget,
-                    isDarkWidgetTheme = isDarkWidgetTheme,
+                    isDarkWidget = isDarkWidget,
                     selectedTapMode = selectedTapMode,
                     onSelectHabit = { selectedHabitId = it.habit.id },
-                    onToggleWidgetTheme = { isDarkWidgetTheme = it },
+                    onSelectDark = { isDarkWidget = it },
                     onSelectTapMode = { selectedTapMode = it },
                     onCancel = { finish() },
                     onConfirm = {
@@ -155,7 +144,7 @@ class HabitWidgetConfigureActivity : ComponentActivity() {
                                 context = applicationContext,
                                 appWidgetId = appWidgetId,
                                 habitId = chosenHabitId,
-                                isDark = isDarkWidgetTheme,
+                                isDark = isDarkWidget,
                                 tapMode = selectedTapMode
                             )
                             HabitWidgetUpdater.updateSingleWidgetSync(
@@ -178,397 +167,324 @@ class HabitWidgetConfigureActivity : ComponentActivity() {
 
 @Composable
 private fun WidgetConfigureScreen(
+    isLoading: Boolean,
     habits: List<HabitWithLogs>,
     selectedHabit: HabitWithLogs?,
     isCompactWidget: Boolean,
-    isDarkWidgetTheme: Boolean,
+    isDarkWidget: Boolean,
     selectedTapMode: String,
     onSelectHabit: (HabitWithLogs) -> Unit,
-    onToggleWidgetTheme: (Boolean) -> Unit,
+    onSelectDark: (Boolean) -> Unit,
     onSelectTapMode: (String) -> Unit,
     onCancel: () -> Unit,
     onConfirm: () -> Unit
 ) {
     val colors = TesseraTheme.colors
-    val context = LocalContext.current
-    val activePalette = HabitPalette.resolve(selectedHabit?.habit?.colorKey)
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = colors.surfaceAbyss
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.surfaceAbyss)
+            .statusBarsPadding()
+            .navigationBarsPadding()
     ) {
-        Column(
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
+                .fillMaxWidth()
+                .padding(
+                    horizontal = TesseraDimens.ScreenPadding,
+                    vertical = TesseraDimens.SpaceM
+                ),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Editorial Top Header
-            Row(
+            Text(
+                text = stringResource(R.string.widget_configure_title),
+                style = TesseraType.Headline,
+                color = colors.textPrimary,
+                modifier = Modifier.weight(1f)
+            )
+            TesseraIconButton(
+                icon = Icons.Rounded.Close,
+                contentDescription = "Cancel",
+                onClick = onCancel
+            )
+        }
+
+        if (habits.isEmpty()) {
+            Box(
                 modifier = Modifier
+                    .weight(1f)
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(TesseraDimens.SpaceXl),
+                contentAlignment = Alignment.Center
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                if (!isLoading) {
                     Text(
-                        text = if (isCompactWidget) {
-                            "ONE UI · 2×2 COMPACT MOSAIC"
-                        } else {
-                            "ONE UI · 4×2 ARCHITECTURAL MOSAIC"
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = activePalette.level4,
-                        letterSpacing = 1.1.sp
-                    )
-                    Text(
-                        text = "Configure Ritual Widget",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontFamily = FontFamily.Serif,
-                        fontWeight = FontWeight.Normal,
-                        color = colors.textPrimary
-                    )
-                }
-                IconButton(onClick = onCancel) {
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = "Cancel",
-                        tint = colors.textSecondary
+                        text = "Add a habit in Tessera first.",
+                        style = TesseraType.Body,
+                        color = colors.textSecondary
                     )
                 }
             }
-
+        } else {
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp)
+                contentPadding = PaddingValues(
+                    horizontal = TesseraDimens.ScreenPadding,
+                    vertical = TesseraDimens.SpaceS
+                ),
+                verticalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceXl)
             ) {
-                // Live S26 Ultra Home Screen Preview Card
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "HOME SCREEN PREVIEW",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colors.textSecondary,
-                            letterSpacing = 0.8.sp
+                item(key = "preview") {
+                    Column(verticalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceS)) {
+                        SectionHeading(text = "Preview")
+                        WidgetPreview(
+                            habit = selectedHabit,
+                            isCompactWidget = isCompactWidget,
+                            isDarkWidget = isDarkWidget
                         )
+                    }
+                }
 
-                        val previewBg = if (isDarkWidgetTheme) Color(0xFF161514) else Color(0xFFFCFBF9)
-                        val previewBorder = if (isDarkWidgetTheme) Color(0xFF262421) else Color(0xFFE6E2DA)
-                        val previewTitleColor = if (isDarkWidgetTheme) Color(0xFFF5F3EF) else Color(0xFF1C1B19)
-                        val previewSubColor = if (isDarkWidgetTheme) Color(0xFF9A948A) else Color(0xFF6E6960)
-
-                        val previewBitmap = remember(selectedHabit, isDarkWidgetTheme, isCompactWidget) {
-                            if (isCompactWidget) {
-                                WidgetHeatmapBitmapRenderer.renderCompactHeatmap(
-                                    context = context,
-                                    habitWithLogs = selectedHabit,
-                                    isDarkTheme = isDarkWidgetTheme,
-                                    weeks = 8
-                                ).asImageBitmap()
-                            } else {
-                                WidgetHeatmapBitmapRenderer.renderWideHeatmap(
-                                    context = context,
-                                    habitWithLogs = selectedHabit,
-                                    isDarkTheme = isDarkWidgetTheme,
-                                    weeks = 18
-                                ).asImageBitmap()
-                            }
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(24.dp))
-                                .background(previewBg)
-                                .border(1.dp, previewBorder, RoundedCornerShape(24.dp))
-                                .padding(16.dp)
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = selectedHabit?.habit?.title ?: "Select a Ritual",
-                                                color = previewTitleColor,
-                                                fontWeight = FontWeight.SemiBold,
-                                                fontSize = 15.sp,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            val streak = selectedHabit?.computeStats()?.currentStreak ?: 0
-                                            Text(
-                                                text = if (isCompactWidget) {
-                                                    "${streak}d streak"
-                                                } else {
-                                                    "$streak day streak"
-                                                },
-                                                color = activePalette.level4,
-                                                fontFamily = FontFamily.Serif,
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.SemiBold
-                                            )
-                                        }
-                                        val todayCount = selectedHabit?.countForDate(LocalDate.now()) ?: 0
-                                        val target = selectedHabit?.habit?.targetPerDay ?: 1
-                                        val slug = selectedHabit?.habit?.slug ?: "ritual"
-                                        Text(
-                                            text = "$slug · $todayCount/$target today",
-                                            color = previewSubColor,
-                                            fontSize = 11.sp
-                                        )
-                                    }
-
-                                    // Tactile 32dp Circular Check-In Button
-                                    Box(
-                                        modifier = Modifier
-                                            .size(32.dp)
-                                            .clip(CircleShape)
-                                            .background(activePalette.level4),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Check,
-                                            contentDescription = null,
-                                            tint = activePalette.onAccent,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
+                item(key = "habit") {
+                    Column(verticalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceS)) {
+                        SectionHeading(text = "Habit")
+                        TesseraCard(contentPadding = 0.dp) {
+                            habits.forEachIndexed { index, item ->
+                                if (index > 0) {
+                                    TesseraDivider(
+                                        modifier = Modifier.padding(horizontal = TesseraDimens.SpaceL)
+                                    )
                                 }
-
-                                Image(
-                                    bitmap = previewBitmap,
-                                    contentDescription = "Widget Heatmap Preview",
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(if (isCompactWidget) 76.dp else 88.dp),
-                                    contentScale = ContentScale.FillBounds
+                                RadioRow(
+                                    title = item.habit.title,
+                                    supporting = null,
+                                    selected = item.habit.id == selectedHabit?.habit?.id,
+                                    onClick = { onSelectHabit(item) }
                                 )
                             }
                         }
                     }
                 }
 
-                // Surface Theme Toggle
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "WIDGET SURFACE FINISH",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colors.textSecondary,
-                            letterSpacing = 0.8.sp
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            OptionChipCard(
-                                title = "Warm Matte Carbon",
-                                subtitle = "#161514 Braun Dark",
-                                selected = isDarkWidgetTheme,
-                                accentColor = activePalette.level4,
-                                modifier = Modifier.weight(1f),
-                                onClick = { onToggleWidgetTheme(true) }
+                item(key = "background") {
+                    Column(verticalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceS)) {
+                        SectionHeading(text = "Background")
+                        Row(horizontalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceS)) {
+                            TesseraChip(
+                                text = "Light",
+                                selected = !isDarkWidget,
+                                onClick = { onSelectDark(false) },
+                                modifier = Modifier.defaultMinSize(minHeight = TesseraDimens.TouchTarget)
                             )
-                            OptionChipCard(
-                                title = "Warm Limestone",
-                                subtitle = "#FCFBF9 Editorial Paper",
-                                selected = !isDarkWidgetTheme,
-                                accentColor = activePalette.level4,
-                                modifier = Modifier.weight(1f),
-                                onClick = { onToggleWidgetTheme(false) }
+                            TesseraChip(
+                                text = "Dark",
+                                selected = isDarkWidget,
+                                onClick = { onSelectDark(true) },
+                                modifier = Modifier.defaultMinSize(minHeight = TesseraDimens.TouchTarget)
                             )
                         }
                     }
                 }
 
-                // 1-Tap Check-in Mode Toggle
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "1-TAP CHECK-IN BEHAVIOR",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colors.textSecondary,
-                            letterSpacing = 0.8.sp
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            OptionChipCard(
-                                title = "Smart Toggle",
-                                subtitle = "Cycle 0 → Target → 0",
-                                selected = selectedTapMode == WidgetPrefs.TAP_MODE_SMART,
-                                accentColor = activePalette.level4,
-                                modifier = Modifier.weight(1f),
+                item(key = "tap") {
+                    Column(verticalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceS)) {
+                        SectionHeading(text = "When tapped")
+                        TesseraCard(contentPadding = 0.dp) {
+                            RadioRow(
+                                title = "Mark done / undo",
+                                supporting = "Tap to mark today done; tap again to undo. " +
+                                    "A habit with a daily target counts up to it first.",
+                                selected = selectedTapMode != WidgetPrefs.TAP_MODE_INCREMENT,
                                 onClick = { onSelectTapMode(WidgetPrefs.TAP_MODE_SMART) }
                             )
-                            OptionChipCard(
-                                title = "Always +1",
-                                subtitle = "Unbounded Increment",
+                            TesseraDivider(
+                                modifier = Modifier.padding(horizontal = TesseraDimens.SpaceL)
+                            )
+                            RadioRow(
+                                title = "Add one each tap",
+                                supporting = "Every tap adds one to today's count and never undoes it.",
                                 selected = selectedTapMode == WidgetPrefs.TAP_MODE_INCREMENT,
-                                accentColor = activePalette.level4,
-                                modifier = Modifier.weight(1f),
                                 onClick = { onSelectTapMode(WidgetPrefs.TAP_MODE_INCREMENT) }
                             )
                         }
                     }
                 }
-
-                // Select Ritual Header
-                item {
-                    Text(
-                        text = "SELECT RITUAL TO BIND (${habits.size})",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = colors.textSecondary,
-                        letterSpacing = 0.8.sp
-                    )
-                }
-
-                // Habit List
-                items(habits, key = { it.habit.id }) { item ->
-                    val palette = HabitPalette.resolve(item.habit.colorKey)
-                    val isSelected = item.habit.id == selectedHabit?.habit?.id
-                    val stats = remember(item) { item.computeStats() }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(if (isSelected) colors.surfaceElevated else colors.surfaceCard)
-                            .border(
-                                width = if (isSelected) 1.5.dp else 1.dp,
-                                color = if (isSelected) palette.level4 else colors.borderHairline,
-                                shape = RoundedCornerShape(16.dp)
-                            )
-                            .clickable { onSelectHabit(item) }
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(palette.level1),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = HabitIcons.resolve(item.habit.iconKey),
-                                contentDescription = null,
-                                tint = palette.level4,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = item.habit.title,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = colors.textPrimary
-                            )
-                            Text(
-                                text = "${stats.currentStreak} day streak · ${item.habit.targetPerDay}× daily",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontFamily = FontFamily.Serif,
-                                fontSize = 12.sp,
-                                color = colors.textSecondary
-                            )
-                        }
-
-                        if (isSelected) {
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .clip(CircleShape)
-                                    .background(palette.level4),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Check,
-                                    contentDescription = "Selected",
-                                    tint = palette.onAccent,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
-                    }
-                }
             }
 
-            // Bottom Confirm Button
-            Box(
+            TesseraPrimaryButton(
+                text = "Add widget",
+                onClick = onConfirm,
+                enabled = selectedHabit != null,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(colors.surfaceCard)
-                    .padding(horizontal = 20.dp, vertical = 14.dp)
-            ) {
-                Button(
-                    onClick = onConfirm,
-                    enabled = selectedHabit != null,
+                    .padding(
+                        horizontal = TesseraDimens.ScreenPadding,
+                        vertical = TesseraDimens.SpaceM
+                    )
+            )
+        }
+    }
+}
+
+/** A 56dp row with a title, optional explanation and a radio indicator at the end. */
+@Composable
+private fun RadioRow(
+    title: String,
+    supporting: String?,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val colors = TesseraTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 56.dp)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .padding(horizontal = TesseraDimens.SpaceL, vertical = TesseraDimens.SpaceM),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = TesseraType.Body,
+                color = colors.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (supporting != null) {
+                Text(
+                    text = supporting,
+                    style = TesseraType.Supporting,
+                    color = colors.textSecondary
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(TesseraDimens.SpaceM))
+        Box(
+            modifier = Modifier
+                .size(22.dp)
+                .border(
+                    width = 2.dp,
+                    color = if (selected) colors.accent else colors.borderSpecular,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (selected) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = activePalette.level4,
-                        contentColor = activePalette.onAccent
-                    )
-                ) {
-                    Text(
-                        text = "Place Widget on Home Screen",
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.3.sp
-                    )
-                }
+                        .size(12.dp)
+                        .background(colors.accent, CircleShape)
+                )
             }
         }
     }
 }
 
+/**
+ * A stand-in for the widget, drawn with the widget's own colours (not the app theme)
+ * and the same heatmap renderer the real widget uses.
+ */
 @Composable
-private fun OptionChipCard(
-    title: String,
-    subtitle: String,
-    selected: Boolean,
-    accentColor: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
+private fun WidgetPreview(
+    habit: HabitWithLogs?,
+    isCompactWidget: Boolean,
+    isDarkWidget: Boolean
 ) {
-    val colors = TesseraTheme.colors
+    val context = LocalContext.current
+    val widgetColors = WidgetColors.of(isDarkWidget)
+    val shape = RoundedCornerShape(TesseraDimens.RadiusCard)
+
+    val heatmap = remember(habit, isDarkWidget, isCompactWidget) {
+        if (isCompactWidget) {
+            WidgetHeatmapBitmapRenderer.renderCompactHeatmap(
+                context = context,
+                habitWithLogs = habit,
+                isDarkTheme = isDarkWidget
+            ).asImageBitmap()
+        } else {
+            WidgetHeatmapBitmapRenderer.renderWideHeatmap(
+                context = context,
+                habitWithLogs = habit,
+                isDarkTheme = isDarkWidget
+            ).asImageBitmap()
+        }
+    }
+
+    val streak = habit?.computeStats()?.currentStreak ?: 0
+    val doneToday = habit?.isCompletedOn(LocalDate.now()) ?: false
+    val streakLine = when {
+        streak > 0 && isCompactWidget -> if (streak == 1) "1 day" else "$streak days"
+        streak > 0 -> "$streak-day streak"
+        doneToday -> "Done today"
+        else -> "Not done yet"
+    }
+
     Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (selected) colors.surfaceElevated else colors.surfaceCard)
-            .border(
-                width = if (selected) 1.5.dp else 1.dp,
-                color = if (selected) accentColor else colors.borderHairline,
-                shape = RoundedCornerShape(14.dp)
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 13.dp, vertical = 11.dp)
+        modifier = Modifier
+            .then(if (isCompactWidget) Modifier.width(184.dp) else Modifier.fillMaxWidth())
+            .clip(shape)
+            .background(Color(widgetColors.surface))
+            .border(1.dp, Color(widgetColors.hairline), shape)
+            .padding(TesseraDimens.SpaceL),
+        verticalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceS)
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = if (selected) colors.textPrimary else colors.textSecondary
-        )
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.labelSmall,
-            color = colors.textMuted,
-            fontSize = 10.sp
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = habit?.habit?.title.orEmpty(),
+                    style = TesseraType.BodyStrong,
+                    color = Color(widgetColors.textPrimary),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = streakLine,
+                    style = TesseraType.Supporting,
+                    color = if (streak > 0) {
+                        Color(widgetColors.accent)
+                    } else {
+                        Color(widgetColors.textSecondary)
+                    },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Spacer(modifier = Modifier.width(TesseraDimens.SpaceS))
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .then(
+                        if (doneToday) {
+                            Modifier.background(Color(widgetColors.accent), CircleShape)
+                        } else {
+                            Modifier.border(2.dp, Color(widgetColors.accent), CircleShape)
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (doneToday) "✓" else "+",
+                    style = TesseraType.Label,
+                    color = if (doneToday) {
+                        Color(widgetColors.onAccent)
+                    } else {
+                        Color(widgetColors.accent)
+                    }
+                )
+            }
+        }
+
+        Image(
+            bitmap = heatmap,
+            contentDescription = "Heatmap preview",
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(heatmap.width.toFloat() / heatmap.height.toFloat()),
+            contentScale = ContentScale.Fit
         )
     }
 }

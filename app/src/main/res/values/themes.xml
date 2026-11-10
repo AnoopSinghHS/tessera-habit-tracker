@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Tessera" parent="android:Theme.Material.NoActionBar">
-        <item name="android:statusBarColor">@color/surface_abyss</item>
-        <item name="android:navigationBarColor">@color/surface_abyss</item>
-        <item name="android:windowBackground">@color/surface_abyss</item>
+    <style name="Base.Theme.Tessera" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/page_background</item>
+        <item name="android:statusBarColor">@color/page_background</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
+
+    <!-- Dark navigation-bar icons need API 27; see values-v27. -->
+    <style name="Theme.Tessera" parent="Base.Theme.Tessera" />
 </resources>

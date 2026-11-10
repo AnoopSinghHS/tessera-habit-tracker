@@ -4,54 +4,32 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Outer subtle container frame inside safe zone (26..82) -->
+    <!-- 3x3 grid of heatmap cells inside the adaptive-icon safe zone. -->
     <path
-        android:fillColor="#1E1C1A"
-        android:strokeColor="#33302B"
-        android:strokeWidth="1.2"
-        android:pathData="M30,26L78,26A5,5 0,0 1,83 31L83,77A5,5 0,0 1,78 82L30,82A5,5 0,0 1,25 77L25,31A5,5 0,0 1,30 26z" />
-
-    <!-- Row 1: Asymmetric 3x3 Braun Terracotta & Botanical Forest Mosaic -->
-    <!-- Tile (0,0): Botanical Forest Deep (#2D5A43) -->
-    <path
-        android:fillColor="#2D5A43"
+        android:fillColor="#FAF4E8"
         android:pathData="M33,31L41,31A2.5,2.5 0,0 1,43.5 33.5L43.5,41.5A2.5,2.5 0,0 1,41 44L33,44A2.5,2.5 0,0 1,30.5 41.5L30.5,33.5A2.5,2.5 0,0 1,33 31z" />
-    <!-- Tile (0,1): Botanical Forest Luminous (#4E8C6F) -->
     <path
-        android:fillColor="#4E8C6F"
+        android:fillColor="#A9CBE0"
         android:pathData="M50,31L58,31A2.5,2.5 0,0 1,60.5 33.5L60.5,41.5A2.5,2.5 0,0 1,58 44L50,44A2.5,2.5 0,0 1,47.5 41.5L47.5,33.5A2.5,2.5 0,0 1,50 31z" />
-    <!-- Tile (0,2): Warm Ochre (#C27D38) -->
     <path
-        android:fillColor="#C27D38"
+        android:fillColor="#FAF4E8"
         android:pathData="M67,31L75,31A2.5,2.5 0,0 1,77.5 33.5L77.5,41.5A2.5,2.5 0,0 1,75 44L67,44A2.5,2.5 0,0 1,64.5 41.5L64.5,33.5A2.5,2.5 0,0 1,67 31z" />
-
-    <!-- Row 2 -->
-    <!-- Tile (1,0): Botanical Forest Mid (#3B7357) -->
     <path
-        android:fillColor="#3B7357"
+        android:fillColor="#74A9D3"
         android:pathData="M33,48L41,48A2.5,2.5 0,0 1,43.5 50.5L43.5,58.5A2.5,2.5 0,0 1,41 61L33,61A2.5,2.5 0,0 1,30.5 58.5L30.5,50.5A2.5,2.5 0,0 1,33 48z" />
-    <!-- Tile (1,1): Braun Terracotta Centerpiece (#B85435) -->
     <path
-        android:fillColor="#B85435"
+        android:fillColor="#FAF4E8"
         android:pathData="M50,48L58,48A2.5,2.5 0,0 1,60.5 50.5L60.5,58.5A2.5,2.5 0,0 1,58 61L50,61A2.5,2.5 0,0 1,47.5 58.5L47.5,50.5A2.5,2.5 0,0 1,50 48z" />
-    <!-- Tile (1,2): Braun Terracotta Luminous (#D46A48) -->
     <path
-        android:fillColor="#D46A48"
+        android:fillColor="#FAF4E8"
         android:pathData="M67,48L75,48A2.5,2.5 0,0 1,77.5 50.5L77.5,58.5A2.5,2.5 0,0 1,75 61L67,61A2.5,2.5 0,0 1,64.5 58.5L64.5,50.5A2.5,2.5 0,0 1,67 48z" />
-
-    <!-- Row 3 -->
-    <!-- Tile (2,0): Warm Recessed Carbon Tile (#282623) -->
     <path
-        android:fillColor="#282623"
+        android:fillColor="#3B82C4"
         android:pathData="M33,65L41,65A2.5,2.5 0,0 1,43.5 67.5L43.5,75.5A2.5,2.5 0,0 1,41 78L33,78A2.5,2.5 0,0 1,30.5 75.5L30.5,67.5A2.5,2.5 0,0 1,33 65z" />
-    <!-- Tile (2,1): Botanical Forest Luminous (#4E8C6F) -->
     <path
-        android:fillColor="#4E8C6F"
+        android:fillColor="#A9CBE0"
         android:pathData="M50,65L58,65A2.5,2.5 0,0 1,60.5 67.5L60.5,75.5A2.5,2.5 0,0 1,58 78L50,78A2.5,2.5 0,0 1,47.5 75.5L47.5,67.5A2.5,2.5 0,0 1,50 65z" />
-    <!-- Tile (2,2): Active Specular Tile (Braun Terracotta + Warm Limestone Highlight) -->
     <path
-        android:fillColor="#D46A48"
-        android:strokeColor="#F5F3EF"
-        android:strokeWidth="1.2"
+        android:fillColor="#FAF4E8"
         android:pathData="M67,65L75,65A2.5,2.5 0,0 1,77.5 67.5L77.5,75.5A2.5,2.5 0,0 1,75 78L67,78A2.5,2.5 0,0 1,64.5 75.5L64.5,67.5A2.5,2.5 0,0 1,67 65z" />
 </vector>

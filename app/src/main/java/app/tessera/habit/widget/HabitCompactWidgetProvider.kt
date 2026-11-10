@@ -5,10 +5,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.os.Bundle
 
-/**
- * 2x2 Compact Ritual Heatmap Widget Provider for Samsung One UI Home Screen.
- * Renders an 8-week contribution matrix with streak counter and 1-tap check-in button.
- */
+/** The 2x2 widget: a smaller heatmap, the streak and a check-in button. */
 class HabitCompactWidgetProvider : AppWidgetProvider() {
 
     override fun onEnabled(context: Context) {
