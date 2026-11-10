@@ -11,24 +11,27 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoGraph
+import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.GridView
-import androidx.compose.material.icons.rounded.Terminal
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
@@ -45,16 +48,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.tessera.habit.ui.components.TesseraDimens
+import app.tessera.habit.ui.components.TesseraDivider
 import app.tessera.habit.ui.screens.AnalyticsScreen
 import app.tessera.habit.ui.screens.ApiAndSettingsScreen
 import app.tessera.habit.ui.screens.DashboardScreen
 import app.tessera.habit.ui.screens.HabitDetailSheet
 import app.tessera.habit.ui.screens.HabitEditorDialog
-import app.tessera.habit.ui.theme.HabitPalette
 import app.tessera.habit.ui.theme.TesseraTheme
 import app.tessera.habit.ui.theme.TesseraType
 import app.tessera.habit.ui.viewmodel.TesseraViewModel
@@ -64,8 +70,8 @@ private enum class TesseraTab(
     val icon: ImageVector
 ) {
     TODAY("Today", Icons.Rounded.GridView),
-    INSIGHTS("Insights", Icons.Rounded.AutoGraph),
-    SETTINGS("Settings & API", Icons.Rounded.Terminal)
+    PROGRESS("Progress", Icons.Rounded.BarChart),
+    SETTINGS("Settings", Icons.Rounded.Tune)
 }
 
 class MainActivity : ComponentActivity() {
@@ -82,8 +88,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-            TesseraTheme(themeMode = uiState.themeMode) {
+            TesseraTheme {
                 TesseraRootApp(viewModel = viewModel)
             }
         }
@@ -97,7 +102,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        viewModel.refreshApiTelemetrySummary()
+        viewModel.refreshApiSummary()
     }
 }
 
@@ -126,26 +131,29 @@ private fun TesseraRootApp(viewModel: TesseraViewModel) {
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState) { data ->
                 Snackbar(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    containerColor = colors.surfaceElevated,
-                    contentColor = colors.textPrimary,
-                    shape = RoundedCornerShape(10.dp)
+                    modifier = Modifier.padding(
+                        horizontal = TesseraDimens.SpaceL,
+                        vertical = TesseraDimens.SpaceS
+                    ),
+                    containerColor = colors.textPrimary,
+                    contentColor = colors.surfaceCard,
+                    shape = RoundedCornerShape(TesseraDimens.RadiusControl)
                 ) {
                     Text(
                         text = data.visuals.message,
-                        style = TesseraType.TelemetryBadge,
-                        color = HabitPalette.EmeraldMatrix.colorForLevel(4, colors.isDark)
+                        style = TesseraType.Supporting,
+                        color = colors.surfaceCard
                     )
                 }
             }
         },
         bottomBar = {
-            TesseraArchitecturalBottomBar(
+            TesseraBottomBar(
                 currentTab = currentTab,
                 onSelectTab = { tab ->
                     currentTab = tab
                     if (tab == TesseraTab.SETTINGS) {
-                        viewModel.refreshApiTelemetrySummary()
+                        viewModel.refreshApiSummary()
                     }
                 }
             )
@@ -163,21 +171,14 @@ private fun TesseraRootApp(viewModel: TesseraViewModel) {
                         DashboardScreen(
                             uiState = uiState,
                             onCheckInHabit = { habitId -> viewModel.smartCheckIn(habitId) },
-                            onGatewayCheckInHabit = { habitId -> viewModel.gatewayCheckIn(habitId) },
                             onOpenHabitDetail = { habitId -> viewModel.openHabitDetail(habitId) },
                             onOpenCreateHabit = { viewModel.openCreateHabitDialog() },
                             onSelectCategory = { cat -> viewModel.selectCategory(cat) },
-                            onToggleViewMode = { viewModel.toggleViewMode() },
-                            onToggleTheme = { viewModel.cycleThemeMode() },
-                            onOpenApiBridge = {
-                                viewModel.refreshApiTelemetrySummary()
-                                currentTab = TesseraTab.SETTINGS
-                            },
-                            onResetDemoData = { viewModel.resetDemoData() }
+                            onToggleViewMode = { viewModel.toggleViewMode() }
                         )
                     }
 
-                    TesseraTab.INSIGHTS -> {
+                    TesseraTab.PROGRESS -> {
                         AnalyticsScreen(
                             uiState = uiState,
                             onOpenHabitDetail = { habitId -> viewModel.openHabitDetail(habitId) }
@@ -196,17 +197,15 @@ private fun TesseraRootApp(viewModel: TesseraViewModel) {
                                     note = note
                                 )
                             },
-                            onSetThemeMode = { mode -> viewModel.setThemeMode(mode) },
                             onExportJsonToClipboard = {
                                 viewModel.exportJsonToString { json ->
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                                    clipboard?.setPrimaryClip(ClipData.newPlainText("Tessera Backup JSON", json))
+                                    clipboard?.setPrimaryClip(ClipData.newPlainText("Tessera backup", json))
                                 }
                             },
                             onExportJsonToUri = { uri -> viewModel.exportJsonToUri(uri) },
                             onImportJsonFromUri = { uri -> viewModel.importJsonFromUri(uri) },
                             onImportJsonFromString = { raw -> viewModel.importJsonFromString(raw) },
-                            onResetDemoData = { viewModel.resetDemoData() },
                             onClearAllData = { viewModel.clearAllData() },
                             onPostMessage = { msg -> viewModel.postMessage(msg) }
                         )
@@ -216,7 +215,6 @@ private fun TesseraRootApp(viewModel: TesseraViewModel) {
         }
     }
 
-    // Habit Detail & Telemetry Bottom Sheet
     val selectedHabitWithLogs = uiState.selectedHabitWithLogs
     if (selectedHabitWithLogs != null) {
         HabitDetailSheet(
@@ -243,7 +241,6 @@ private fun TesseraRootApp(viewModel: TesseraViewModel) {
         )
     }
 
-    // Create / Edit Ritual Modal Sheet with In-Memory Draft Preservation
     if (uiState.isEditorOpen) {
         HabitEditorDialog(
             draft = uiState.editorDraft,
@@ -257,7 +254,7 @@ private fun TesseraRootApp(viewModel: TesseraViewModel) {
 }
 
 @Composable
-private fun TesseraArchitecturalBottomBar(
+private fun TesseraBottomBar(
     currentTab: TesseraTab,
     onSelectTab: (TesseraTab) -> Unit
 ) {
@@ -266,57 +263,52 @@ private fun TesseraArchitecturalBottomBar(
         modifier = Modifier
             .fillMaxWidth()
             .background(colors.surfaceCard)
-            .navigationBarsPadding()
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(colors.borderHairline)
-                .padding(top = 1.dp)
-        )
+        TesseraDivider()
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                .navigationBarsPadding()
+                .padding(horizontal = TesseraDimens.SpaceS, vertical = TesseraDimens.SpaceS),
             verticalAlignment = Alignment.CenterVertically
         ) {
             TesseraTab.entries.forEach { tab ->
                 val isSelected = tab == currentTab
-                val activeColor = HabitPalette.EmeraldMatrix.colorForLevel(4, colors.isDark)
-
-                Box(
+                Column(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(
-                            if (isSelected) colors.surfaceElevated else colors.surfaceCard
-                        )
-                        .border(
-                            width = 1.dp,
-                            color = if (isSelected) activeColor.copy(alpha = 0.45f) else colors.surfaceCard,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        .clickable { onSelectTab(tab) }
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center
+                        .heightIn(min = TesseraDimens.TouchTarget)
+                        .clip(RoundedCornerShape(TesseraDimens.RadiusControl))
+                        .selectable(
+                            selected = isSelected,
+                            role = Role.Tab,
+                            onClick = { onSelectTab(tab) }
+                        ),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    Box(
+                        modifier = Modifier
+                            .width(56.dp)
+                            .height(32.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(if (isSelected) colors.surfaceElevated else Color.Transparent),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = tab.icon,
-                            contentDescription = tab.label,
-                            tint = if (isSelected) activeColor else colors.textMuted,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = tab.label,
-                            style = TesseraType.MicroAxis,
-                            color = if (isSelected) colors.textPrimary else colors.textMuted
+                            contentDescription = null,
+                            tint = if (isSelected) colors.textPrimary else colors.textSecondary,
+                            modifier = Modifier.size(22.dp)
                         )
                     }
+                    Spacer(modifier = Modifier.height(TesseraDimens.SpaceXs))
+                    Text(
+                        text = tab.label,
+                        style = TesseraType.Caption,
+                        color = if (isSelected) colors.textPrimary else colors.textSecondary,
+                        maxLines = 1
+                    )
                 }
             }
         }

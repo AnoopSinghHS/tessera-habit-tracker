@@ -8,8 +8,6 @@ import app.tessera.habit.data.model.HabitWithLogs
 import app.tessera.habit.widget.HabitWidgetUpdater
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.util.Locale
@@ -19,11 +17,6 @@ class TesseraRepository(
     private val habitDao: HabitDao
 ) {
     internal val appContext = context.applicationContext
-    private val seedMutex = Mutex()
-
-    private val prefs by lazy {
-        appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    }
 
     val allHabitsWithLogs: Flow<List<HabitWithLogs>> = habitDao.observeAllHabitsWithLogs()
     val activeHabitsWithLogs: Flow<List<HabitWithLogs>> = habitDao.observeActiveHabitsWithLogs()
@@ -41,45 +34,10 @@ class TesseraRepository(
         habitDao.getHabitWithLogsBySlug(slug.trim())
     }
 
-    suspend fun ensureSeeded() = withContext(Dispatchers.IO) {
-        seedMutex.withLock {
-            val alreadySeeded = prefs.getBoolean(KEY_HAS_SEEDED_INITIAL_DATA, false)
-            if (!alreadySeeded) {
-                if (habitDao.getHabitCount() == 0) {
-                    insertDemoSeedInternal()
-                }
-                prefs.edit().putBoolean(KEY_HAS_SEEDED_INITIAL_DATA, true).apply()
-                HabitWidgetUpdater.updateAllWidgets(appContext)
-            }
-        }
-    }
-
-    suspend fun resetToDemoData() = withContext(Dispatchers.IO) {
-        seedMutex.withLock {
-            habitDao.deleteAllLogs()
-            habitDao.deleteAllHabits()
-            insertDemoSeedInternal()
-            prefs.edit().putBoolean(KEY_HAS_SEEDED_INITIAL_DATA, true).apply()
-            HabitWidgetUpdater.updateAllWidgets(appContext)
-        }
-    }
-
     suspend fun clearAllData() = withContext(Dispatchers.IO) {
-        seedMutex.withLock {
-            habitDao.deleteAllLogs()
-            habitDao.deleteAllHabits()
-            prefs.edit().putBoolean(KEY_HAS_SEEDED_INITIAL_DATA, true).apply()
-            HabitWidgetUpdater.updateAllWidgets(appContext)
-        }
-    }
-
-    private suspend fun insertDemoSeedInternal() {
-        val bundles = DemoSeedGenerator.generateShowcaseData(LocalDate.now())
-        for (bundle in bundles) {
-            val habitId = habitDao.insertHabit(bundle.habit)
-            val logsWithId = bundle.logs.map { it.copy(habitId = habitId) }
-            habitDao.upsertLogs(logsWithId)
-        }
+        habitDao.deleteAllLogs()
+        habitDao.deleteAllHabits()
+        HabitWidgetUpdater.updateAllWidgets(appContext)
     }
 
     suspend fun saveHabit(habit: HabitEntity): Long = withContext(Dispatchers.IO) {
@@ -99,7 +57,7 @@ class TesseraRepository(
 
         val normalized = habit.copy(
             slug = resolvedSlug,
-            title = habit.title.trim().ifEmpty { "Untitled Ritual" },
+            title = habit.title.trim().ifEmpty { "Untitled habit" },
             targetPerDay = habit.targetPerDay.coerceIn(1, 100),
             weeklyGoalDays = habit.weeklyGoalDays.coerceIn(1, 7)
         )
@@ -125,10 +83,10 @@ class TesseraRepository(
     }
 
     /**
-     * Smart check-in used by Dashboard 1-tap button, Calendar cell cycling, and Home Screen Widgets.
-     * - If targetPerDay <= 1: toggles 0 <-> 1 (unless alwaysIncrement = true, which sets/increments >= 1).
-     * - If targetPerDay > 1: increments 0 -> 1 -> ... -> targetPerDay; once >= targetPerDay, wraps to 0
-     *   (or increments +1 if alwaysIncrement = true).
+     * One-tap check-in.
+     * - targetPerDay <= 1: toggles 0 <-> 1.
+     * - targetPerDay > 1: counts up 0 -> 1 -> ... -> target, then wraps to 0.
+     * - alwaysIncrement = true: always adds one.
      */
     suspend fun smartCheckIn(
         habitId: Long,
@@ -140,49 +98,16 @@ class TesseraRepository(
         val epochDay = date.toEpochDay()
         val existingLog = habitDao.getLogForDate(habitId, epochDay)
         val currentCount = existingLog?.count ?: 0
-        val currentNote = existingLog?.note.orEmpty()
-        val isCurrentlyGateway = currentCount > 0 && currentNote.contains(HabitWithLogs.GATEWAY_TAG)
         val target = habit.targetPerDay.coerceAtLeast(1)
 
         val nextCount = when {
             alwaysIncrement -> currentCount + 1
-            isCurrentlyGateway && target <= 1 -> 1 // Upgrade 2-min gateway to full completion
             target <= 1 -> if (currentCount >= 1) 0 else 1
             else -> if (currentCount >= target) 0 else currentCount + 1
         }
 
-        val cleanedExistingNote = currentNote.replace(HabitWithLogs.GATEWAY_TAG, "").trim()
-        val mergedNote = note ?: cleanedExistingNote
+        val mergedNote = note ?: existingLog?.note.orEmpty()
         writeCountInternal(habitId, epochDay, nextCount, mergedNote, existingLog?.id ?: 0L)
-        HabitWidgetUpdater.updateAllWidgets(appContext)
-        nextCount
-    }
-
-    /**
-     * Logs a 2-Minute Gateway (*Sahaj* / Law 3) check-in so low-energy days still cast an identity vote
-     * and protect the streak (rendering at Shade Level 2 on the GitHub heatmap).
-     */
-    suspend fun gatewayCheckIn(
-        habitId: Long,
-        date: LocalDate = LocalDate.now()
-    ): Int = withContext(Dispatchers.IO) {
-        val habit = habitDao.getHabitById(habitId) ?: return@withContext 0
-        val epochDay = date.toEpochDay()
-        val existingLog = habitDao.getLogForDate(habitId, epochDay)
-        val currentCount = existingLog?.count ?: 0
-        val currentNote = existingLog?.note.orEmpty()
-        val isCurrentlyGateway = currentCount > 0 && currentNote.contains(HabitWithLogs.GATEWAY_TAG)
-
-        val nextCount = if (isCurrentlyGateway) 0 else 1
-        val baseNote = currentNote.replace(HabitWithLogs.GATEWAY_TAG, "").trim()
-        val nextNote = if (nextCount > 0) {
-            val starterDesc = habit.microStarter.ifBlank { "2-min starter" }
-            if (baseNote.isNotEmpty()) "${HabitWithLogs.GATEWAY_TAG} $baseNote" else "${HabitWithLogs.GATEWAY_TAG} $starterDesc"
-        } else {
-            baseNote
-        }
-
-        writeCountInternal(habitId, epochDay, nextCount, nextNote, existingLog?.id ?: 0L)
         HabitWidgetUpdater.updateAllWidgets(appContext)
         nextCount
     }
@@ -243,10 +168,7 @@ class TesseraRepository(
         }
     }
 
-    /**
-     * Unified programmatic entry point for external Broadcast Intents (`HabitApiReceiver`)
-     * and Deep Links (`tessera://log?...`).
-     */
+    /** Entry point for the automation API: broadcasts (`HabitApiReceiver`) and deep links. */
     suspend fun logByProgrammaticApi(
         slugOrId: String,
         mode: String = "increment",
@@ -255,7 +177,6 @@ class TesseraRepository(
         date: LocalDate = LocalDate.now(),
         note: String? = null
     ): Boolean = withContext(Dispatchers.IO) {
-        ensureSeeded()
         val cleanedKey = slugOrId.trim().removePrefix("#")
         if (cleanedKey.isEmpty()) return@withContext false
 
@@ -303,10 +224,5 @@ class TesseraRepository(
             }
         }
         true
-    }
-
-    companion object {
-        const val PREFS_NAME = "tessera_repo_prefs"
-        const val KEY_HAS_SEEDED_INITIAL_DATA = "has_seeded_initial_data"
     }
 }

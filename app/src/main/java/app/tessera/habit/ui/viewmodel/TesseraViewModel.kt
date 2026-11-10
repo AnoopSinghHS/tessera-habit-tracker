@@ -17,7 +17,6 @@ import app.tessera.habit.data.local.HabitEntity
 import app.tessera.habit.data.local.TesseraDatabase
 import app.tessera.habit.data.model.HabitWithLogs
 import app.tessera.habit.data.repository.TesseraRepository
-import app.tessera.habit.ui.theme.ThemeMode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -45,10 +44,15 @@ data class HabitDraft(
     val microStarter: String = "",
     val identityStatement: String = "",
     val ritualTime: String = "DAWN",
+    /** Carried through from the stored habit so that editing does not reset them. */
+    val isArchived: Boolean = false,
+    val sortOrder: Int = 0,
+    /** 0 means "not created yet"; [toHabitEntity] stamps the current time. */
+    val createdAt: Long = 0L,
     val hasUnsavedChanges: Boolean = false
 ) {
     fun toHabitEntity(): HabitEntity {
-        val finalTitle = title.trim().ifEmpty { "Daily Ritual" }
+        val finalTitle = title.trim().ifEmpty { "New habit" }
         val finalSlug = slug.trim().ifEmpty { HabitEntity.generateSlug(finalTitle) }
         return HabitEntity(
             id = habitId,
@@ -65,7 +69,10 @@ data class HabitDraft(
             temptationReward = temptationReward.trim(),
             microStarter = microStarter.trim(),
             identityStatement = identityStatement.trim(),
-            ritualTime = ritualTime.ifBlank { "DAWN" }
+            ritualTime = ritualTime.ifBlank { "DAWN" },
+            isArchived = isArchived,
+            sortOrder = sortOrder,
+            createdAt = if (createdAt > 0L) createdAt else System.currentTimeMillis()
         )
     }
 
@@ -87,10 +94,15 @@ data class HabitDraft(
             microStarter = habit.microStarter,
             identityStatement = habit.identityStatement,
             ritualTime = habit.ritualTime,
+            isArchived = habit.isArchived,
+            sortOrder = habit.sortOrder,
+            createdAt = habit.createdAt,
             hasUnsavedChanges = false
         )
     }
 }
+
+private const val DEFAULT_API_SUMMARY = "No automation events yet"
 
 data class TesseraUiState(
     val allHabits: List<HabitWithLogs> = emptyList(),
@@ -100,14 +112,11 @@ data class TesseraUiState(
     val categories: List<String> = listOf("ALL"),
     val selectedCategory: String = "ALL",
     val isCompactBentoView: Boolean = false,
-    val themeMode: ThemeMode = ThemeMode.ALABASTER_LIGHT,
     val selectedHabitId: Long? = null,
     val isEditorOpen: Boolean = false,
     val editingHabit: HabitEntity? = null,
     val editorDraft: HabitDraft = HabitDraft(),
-    val isRitualChamberOpen: Boolean = false,
-    val activeRitualTime: String = "DAWN",
-    val lastApiEventSummary: String = "Ready · Listening on app.tessera.habit.ACTION_LOG_HABIT",
+    val lastApiEventSummary: String = DEFAULT_API_SUMMARY,
     val statusMessage: String? = null
 ) {
     val selectedHabitWithLogs: HabitWithLogs?
@@ -117,14 +126,11 @@ data class TesseraUiState(
 private data class LocalUiControlState(
     val selectedCategory: String = "ALL",
     val isCompactBentoView: Boolean = false,
-    val themeMode: ThemeMode = ThemeMode.ALABASTER_LIGHT,
     val selectedHabitId: Long? = null,
     val isEditorOpen: Boolean = false,
     val editingHabit: HabitEntity? = null,
     val editorDraft: HabitDraft = HabitDraft(),
-    val isRitualChamberOpen: Boolean = false,
-    val activeRitualTime: String = "DAWN",
-    val lastApiEventSummary: String = "Ready · Listening on app.tessera.habit.ACTION_LOG_HABIT",
+    val lastApiEventSummary: String = DEFAULT_API_SUMMARY,
     val statusMessage: String? = null
 )
 
@@ -139,15 +145,14 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
         ?: BackupManager(appContext, repository)
 
     private val uiPrefs = appContext.getSharedPreferences(UI_PREFS_NAME, Context.MODE_PRIVATE)
-    private val apiTelemetryPrefs = appContext.getSharedPreferences(
+    private val apiEventPrefs = appContext.getSharedPreferences(
         HabitApiReceiver.PREFS_API_TELEMETRY,
         Context.MODE_PRIVATE
     )
 
     private val controlState = MutableStateFlow(
         LocalUiControlState(
-            isCompactBentoView = uiPrefs.getBoolean(KEY_COMPACT_BENTO_VIEW, false),
-            themeMode = ThemeMode.fromKey(uiPrefs.getString(KEY_THEME_MODE, ThemeMode.ALABASTER_LIGHT.key)),
+            isCompactBentoView = uiPrefs.getBoolean(KEY_COMPACT_VIEW, false),
             lastApiEventSummary = readApiSummaryFromPrefs()
         )
     )
@@ -192,13 +197,10 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
             categories = categoryPills,
             selectedCategory = effectiveCategory,
             isCompactBentoView = ctrl.isCompactBentoView,
-            themeMode = ctrl.themeMode,
             selectedHabitId = ctrl.selectedHabitId,
             isEditorOpen = ctrl.isEditorOpen,
             editingHabit = ctrl.editingHabit,
             editorDraft = ctrl.editorDraft,
-            isRitualChamberOpen = ctrl.isRitualChamberOpen,
-            activeRitualTime = ctrl.activeRitualTime,
             lastApiEventSummary = ctrl.lastApiEventSummary,
             statusMessage = ctrl.statusMessage
         )
@@ -207,29 +209,17 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = TesseraUiState(
             isCompactBentoView = controlState.value.isCompactBentoView,
-            themeMode = controlState.value.themeMode,
             editorDraft = controlState.value.editorDraft,
-            isRitualChamberOpen = controlState.value.isRitualChamberOpen,
-            activeRitualTime = controlState.value.activeRitualTime,
             lastApiEventSummary = controlState.value.lastApiEventSummary
         )
     )
 
-    init {
-        viewModelScope.launch {
-            repository.ensureSeeded()
-            refreshApiTelemetrySummary()
-        }
-    }
-
     private fun readApiSummaryFromPrefs(): String {
-        return apiTelemetryPrefs.getString(
-            HabitApiReceiver.KEY_LAST_EVENT_SUMMARY,
-            "Ready · Listening on app.tessera.habit.ACTION_LOG_HABIT"
-        ) ?: "Ready · Listening on app.tessera.habit.ACTION_LOG_HABIT"
+        return apiEventPrefs.getString(HabitApiReceiver.KEY_LAST_EVENT_SUMMARY, null)
+            ?: DEFAULT_API_SUMMARY
     }
 
-    fun refreshApiTelemetrySummary() {
+    fun refreshApiSummary() {
         controlState.update { it.copy(lastApiEventSummary = readApiSummaryFromPrefs()) }
     }
 
@@ -239,25 +229,8 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
 
     fun toggleViewMode() {
         val next = !controlState.value.isCompactBentoView
-        uiPrefs.edit().putBoolean(KEY_COMPACT_BENTO_VIEW, next).apply()
+        uiPrefs.edit().putBoolean(KEY_COMPACT_VIEW, next).apply()
         controlState.update { it.copy(isCompactBentoView = next) }
-    }
-
-    fun setThemeMode(mode: ThemeMode) {
-        uiPrefs.edit().putString(KEY_THEME_MODE, mode.key).apply()
-        controlState.update { it.copy(themeMode = mode) }
-    }
-
-    fun cycleThemeMode() {
-        val next = when (controlState.value.themeMode) {
-            ThemeMode.ALABASTER_LIGHT -> ThemeMode.OBSIDIAN_DARK
-            ThemeMode.OBSIDIAN_DARK -> ThemeMode.ARRAKIS_DUNE
-            ThemeMode.ARRAKIS_DUNE -> ThemeMode.DEEP_SPACE
-            ThemeMode.DEEP_SPACE -> ThemeMode.TATOOINE_DUSK
-            ThemeMode.TATOOINE_DUSK -> ThemeMode.SYSTEM
-            ThemeMode.SYSTEM -> ThemeMode.ALABASTER_LIGHT
-        }
-        setThemeMode(next)
     }
 
     fun openHabitDetail(habitId: Long) {
@@ -279,7 +252,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
 
     fun openCreateHabitDialog() {
         controlState.update { current ->
-            // If the user already had typed an in-memory draft (e.g. from an accidental swipe-down), keep it!
+            // Keep a half-typed new-habit draft if the sheet was dismissed by accident.
             val draftToUse = if (current.editorDraft.hasUnsavedChanges && current.editingHabit == null) {
                 current.editorDraft
             } else {
@@ -320,30 +293,9 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun closeHabitEditor() {
-        // Accidental swipe down or tap outside closes the sheet, but PRESERVES editorDraft in memory!
+        // Closes the sheet but keeps the draft; discardDraft() throws it away.
         controlState.update {
             it.copy(isEditorOpen = false)
-        }
-    }
-
-    fun openRitualChamber(ritualTime: String = "DAWN") {
-        controlState.update {
-            it.copy(
-                isRitualChamberOpen = true,
-                activeRitualTime = ritualTime
-            )
-        }
-    }
-
-    fun closeRitualChamber() {
-        controlState.update {
-            it.copy(isRitualChamberOpen = false)
-        }
-    }
-
-    fun setActiveRitualTime(ritualTime: String) {
-        controlState.update {
-            it.copy(activeRitualTime = ritualTime)
         }
     }
 
@@ -355,7 +307,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
                 it.copy(
                     isEditorOpen = false,
                     editingHabit = null,
-                    editorDraft = HabitDraft(), // Clear draft on successful save
+                    editorDraft = HabitDraft(),
                     statusMessage = if (isNew) {
                         "Created ${habit.title}"
                     } else {
@@ -396,28 +348,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
 
     fun smartCheckIn(habitId: Long, date: LocalDate = LocalDate.now()) {
         viewModelScope.launch {
-            val nextCount = repository.smartCheckIn(habitId = habitId, date = date)
-            val habit = uiState.value.allHabits.firstOrNull { it.habit.id == habitId }?.habit
-            if (habit != null && nextCount >= habit.targetPerDay.coerceAtLeast(1) && habit.identityStatement.isNotBlank()) {
-                controlState.update {
-                    it.copy(statusMessage = "Vote cast: ${habit.identityStatement}")
-                }
-            }
-        }
-    }
-
-    fun gatewayCheckIn(habitId: Long, date: LocalDate = LocalDate.now()) {
-        viewModelScope.launch {
-            val nextCount = repository.gatewayCheckIn(habitId = habitId, date = date)
-            val habit = uiState.value.allHabits.firstOrNull { it.habit.id == habitId }?.habit
-            if (habit != null && nextCount > 0) {
-                val msg = if (habit.microStarter.isNotBlank()) {
-                    "2m Gateway logged (${habit.microStarter}) · Streak protected"
-                } else {
-                    "2m Gateway logged · Streak protected"
-                }
-                controlState.update { it.copy(statusMessage = msg) }
-            }
+            repository.smartCheckIn(habitId = habitId, date = date)
         }
     }
 
@@ -437,10 +368,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    /**
-     * Sends an actual Android Broadcast Intent to [HabitApiReceiver] so the developer sandbox
-     * tests the real exported BroadcastReceiver + Room + Home Screen Widget update pipeline.
-     */
+    /** Sends a real broadcast to [HabitApiReceiver], the same way an automation app would. */
     fun fireLiveBroadcastTest(
         slug: String,
         mode: String = HabitApiContract.MODE_INCREMENT,
@@ -475,7 +403,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val json = backupManager.exportToJsonString()
             onResult(json)
-            postMessage("Copied JSON backup to clipboard")
+            postMessage("Backup copied to clipboard")
         }
     }
 
@@ -483,7 +411,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val result = backupManager.exportToUri(uri)
             result.onSuccess { count ->
-                postMessage("Exported $count habits to JSON file")
+                postMessage("Backed up $count habits")
             }.onFailure { err ->
                 postMessage("Export failed: ${err.localizedMessage ?: "Unknown error"}")
             }
@@ -494,7 +422,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val result = backupManager.importFromJsonString(rawJson, replaceExisting)
             result.onSuccess { count ->
-                postMessage("Imported $count habits from JSON")
+                postMessage("Imported $count habits")
             }.onFailure { err ->
                 postMessage("Import failed: ${err.localizedMessage ?: "Invalid JSON"}")
             }
@@ -505,22 +433,9 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val result = backupManager.importFromUri(uri, replaceExisting)
             result.onSuccess { count ->
-                postMessage("Imported $count habits from backup file")
+                postMessage("Imported $count habits")
             }.onFailure { err ->
                 postMessage("Import failed: ${err.localizedMessage ?: "Invalid file"}")
-            }
-        }
-    }
-
-    fun resetDemoData() {
-        viewModelScope.launch {
-            repository.resetToDemoData()
-            controlState.update {
-                it.copy(
-                    selectedCategory = "ALL",
-                    selectedHabitId = null,
-                    statusMessage = "Restored sample habits"
-                )
             }
         }
     }
@@ -532,7 +447,7 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
                 it.copy(
                     selectedCategory = "ALL",
                     selectedHabitId = null,
-                    statusMessage = "Cleared all habits and logs"
+                    statusMessage = "All data deleted"
                 )
             }
         }
@@ -569,8 +484,8 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
 
     companion object {
         private const val UI_PREFS_NAME = "tessera_ui_prefs"
-        private const val KEY_COMPACT_BENTO_VIEW = "compact_bento_view"
-        private const val KEY_THEME_MODE = "theme_mode_v2"
+        // The stored key keeps its original name so the saved preference survives the update.
+        private const val KEY_COMPACT_VIEW = "compact_bento_view"
 
         fun factory(application: Application): ViewModelProvider.Factory {
             return object : ViewModelProvider.Factory {

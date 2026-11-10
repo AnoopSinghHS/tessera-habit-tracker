@@ -30,32 +30,17 @@ data class HabitWithLogs(
     fun noteForDate(date: LocalDate): String {
         val epochDay = date.toEpochDay()
         return logs.firstOrNull { it.dateEpochDay == epochDay }?.note.orEmpty()
+            .replace(GATEWAY_TAG, "")
+            .trim()
     }
 
     fun isCompletedOn(date: LocalDate): Boolean {
         return countForDate(date) >= habit.targetPerDay.coerceAtLeast(1)
     }
 
-    fun isGatewayOn(date: LocalDate): Boolean {
-        val epochDay = date.toEpochDay()
-        val log = logs.firstOrNull { it.dateEpochDay == epochDay } ?: return false
-        return log.count > 0 && log.note.contains(GATEWAY_TAG)
-    }
-
-    fun gatewayEpochDays(): Set<Long> {
-        return logs
-            .filter { it.count > 0 && it.note.contains(GATEWAY_TAG) }
-            .map { it.dateEpochDay }
-            .toSet()
-    }
-
     fun intensityLevelForDate(date: LocalDate): Int {
-        val count = countForDate(date)
-        if (count > 0 && isGatewayOn(date) && habit.targetPerDay <= 1) {
-            return 2
-        }
         return HabitStats.calculateIntensityLevel(
-            count = count,
+            count = countForDate(date),
             targetPerDay = habit.targetPerDay
         )
     }
@@ -63,6 +48,8 @@ data class HabitWithLogs(
     fun computeStats(today: LocalDate = LocalDate.now()): HabitStats {
         val target = habit.targetPerDay.coerceAtLeast(1)
         val activeLogs = logs.filter { it.count > 0 }
+        // Legacy data: days logged by a removed feature carry a tag in the note and were
+        // counted as completed. Keep counting them so old streaks do not break.
         val completedEpochDays = activeLogs
             .filter { it.count >= target || it.note.contains(GATEWAY_TAG) }
             .map { it.dateEpochDay }
@@ -148,6 +135,6 @@ data class HabitWithLogs(
     }
 
     companion object {
-        const val GATEWAY_TAG = "[GATEWAY]"
+        private const val GATEWAY_TAG = "[GATEWAY]"
     }
 }

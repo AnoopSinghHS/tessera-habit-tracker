@@ -7,13 +7,14 @@ import app.tessera.habit.data.model.BackupHabitLogDto
 import app.tessera.habit.data.model.HabitStats
 import app.tessera.habit.data.model.HabitWithLogs
 import app.tessera.habit.data.model.TesseraBackupPayload
-import app.tessera.habit.data.repository.DemoSeedGenerator
+import app.tessera.habit.ui.components.nextStreakMilestone
+import app.tessera.habit.ui.components.streakDetailLabel
 import app.tessera.habit.ui.theme.HabitPalette
+import app.tessera.habit.ui.viewmodel.HabitDraft
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek
@@ -143,64 +144,6 @@ class TesseraUnitTest {
     }
 
     @Test
-    fun `DemoSeedGenerator generates 4 showcase habits with 20 weeks of realistic logs`() {
-        val today = LocalDate.of(2026, 10, 16)
-        val bundles = DemoSeedGenerator.generateShowcaseData(today)
-
-        assertEquals(4, bundles.size)
-        val slugs = bundles.map { it.habit.slug }.toSet()
-        assertEquals(
-            setOf("deep-work", "strength-training", "read-30-pages", "hydration"),
-            slugs
-        )
-
-        for (bundle in bundles) {
-            assertTrue("Expected non-empty logs for ${bundle.habit.slug}", bundle.logs.size > 50)
-            val hwl = HabitWithLogs(bundle.habit, bundle.logs)
-            val stats = hwl.computeStats(today)
-            assertTrue("Expected positive streak for ${bundle.habit.slug}", stats.currentStreak >= 5)
-            assertTrue("Expected best streak >= current streak", stats.bestStreak >= stats.currentStreak)
-        }
-    }
-
-    @Test
-    fun `HabitPalette resolves all 8 primary palettes and aliases with distinct 5-stop colors`() {
-        assertEquals(8, HabitPalette.allPalettes.size)
-
-        assertEquals(HabitPalette.EmeraldMatrix, HabitPalette.resolve("emerald"))
-        assertEquals(HabitPalette.EmeraldMatrix, HabitPalette.resolve("LIME"))
-        assertEquals(HabitPalette.CyberAmber, HabitPalette.resolve("amber"))
-        assertEquals(HabitPalette.CyberAmber, HabitPalette.resolve("orange"))
-        assertEquals(HabitPalette.CobaltPulse, HabitPalette.resolve("cobalt"))
-        assertEquals(HabitPalette.CobaltPulse, HabitPalette.resolve("indigo"))
-        assertEquals(HabitPalette.CrimsonEmber, HabitPalette.resolve("crimson"))
-        assertEquals(HabitPalette.VioletNebula, HabitPalette.resolve("violet"))
-        assertEquals(HabitPalette.CyanGlacier, HabitPalette.resolve("cyan"))
-        assertEquals(HabitPalette.CyanGlacier, HabitPalette.resolve("glacier"))
-        assertEquals(HabitPalette.RoseQuartz, HabitPalette.resolve("rose"))
-        assertEquals(HabitPalette.RoseQuartz, HabitPalette.resolve("quartz"))
-        assertEquals(HabitPalette.MonochromeInk, HabitPalette.resolve("monochrome"))
-        assertEquals(HabitPalette.EmeraldMatrix, HabitPalette.resolve(null))
-        assertEquals(HabitPalette.EmeraldMatrix, HabitPalette.resolve("unknown-key"))
-
-        for (palette in HabitPalette.allPalettes) {
-            val dark0 = palette.levelColorArgb(0, isDark = true)
-            val dark1 = palette.levelColorArgb(1, isDark = true)
-            val dark4 = palette.levelColorArgb(4, isDark = true)
-            assertNotEquals(dark0, dark1)
-            assertNotEquals(dark1, dark4)
-
-            val light0 = palette.levelColorArgb(0, isDark = false)
-            val light4 = palette.levelColorArgb(4, isDark = false)
-            assertNotEquals(light0, light4)
-
-            // Verify Compose Color stop resolution
-            assertNotEquals(palette.colorForLevel(0, isDark = true), palette.colorForLevel(4, isDark = true))
-            assertNotEquals(palette.colorForLevel(0, isDark = false), palette.colorForLevel(4, isDark = false))
-        }
-    }
-
-    @Test
     fun `BackupModels serialize and deserialize losslessly via kotlinx serialization`() {
         val json = Json {
             prettyPrint = true
@@ -248,15 +191,14 @@ class TesseraUnitTest {
     }
 
     @Test
-    fun `HabitDraft correctly preserves all 4 Laws of Atomic Habits and converts to HabitEntity`() {
-        val draft = app.tessera.habit.ui.viewmodel.HabitDraft(
+    fun `HabitDraft keeps the optional text fields when converted to a HabitEntity and back`() {
+        val draft = HabitDraft(
             title = "Write 500 Words",
             category = "Craft",
             cueAnchor = "Pour morning coffee",
             temptationReward = "Drink artisanal espresso",
             microStarter = "Write 1 single sentence",
             identityStatement = "I am a disciplined writer who publishes daily",
-            ritualTime = "DAWN",
             hasUnsavedChanges = true
         )
 
@@ -267,50 +209,110 @@ class TesseraUnitTest {
         assertEquals("Drink artisanal espresso", entity.temptationReward)
         assertEquals("Write 1 single sentence", entity.microStarter)
         assertEquals("I am a disciplined writer who publishes daily", entity.identityStatement)
-        assertEquals("DAWN", entity.ritualTime)
+        assertFalse(entity.isArchived)
+        assertEquals(0, entity.sortOrder)
+        assertTrue(entity.createdAt > 0L)
 
-        val hydratedDraft = app.tessera.habit.ui.viewmodel.HabitDraft.fromHabit(entity)
+        val hydratedDraft = HabitDraft.fromHabit(entity)
         assertEquals(draft.title, hydratedDraft.title)
         assertEquals(draft.cueAnchor, hydratedDraft.cueAnchor)
         assertEquals(draft.temptationReward, hydratedDraft.temptationReward)
         assertEquals(draft.microStarter, hydratedDraft.microStarter)
         assertEquals(draft.identityStatement, hydratedDraft.identityStatement)
-        assertEquals(draft.ritualTime, hydratedDraft.ritualTime)
         assertFalse(hydratedDraft.hasUnsavedChanges)
     }
 
     @Test
-    fun `Gateway check-in shades binary habit at Level 2 and protects streak`() {
+    fun `HabitDraft with a blank title falls back to New habit`() {
+        val entity = HabitDraft(title = "   ").toHabitEntity()
+        assertEquals("New habit", entity.title)
+        assertEquals("new-habit", entity.slug)
+    }
+
+    @Test
+    fun `editing a habit preserves isArchived sortOrder and createdAt`() {
+        val stored = HabitEntity(
+            id = 9L,
+            slug = "vocal-riyaz",
+            title = "Vocal riyaz",
+            isArchived = true,
+            sortOrder = 7,
+            createdAt = 1700000000000L
+        )
+
+        val edited = HabitDraft.fromHabit(stored)
+            .copy(title = "Vocal practice", hasUnsavedChanges = true)
+            .toHabitEntity()
+
+        assertEquals(9L, edited.id)
+        assertEquals("Vocal practice", edited.title)
+        assertEquals("vocal-riyaz", edited.slug)
+        assertTrue(edited.isArchived)
+        assertEquals(7, edited.sortOrder)
+        assertEquals(1700000000000L, edited.createdAt)
+        assertEquals(stored, HabitDraft.fromHabit(stored).toHabitEntity())
+    }
+
+    @Test
+    fun `days tagged by the removed quick check-in still count towards streaks`() {
         val today = LocalDate.of(2026, 10, 16)
         val yesterday = today.minusDays(1)
+        val legacyTag = "[GATEWAY]"
         val habit = HabitEntity(
             id = 5L,
-            slug = "vocal-riyaz",
-            title = "Vocal Riyaz",
-            targetPerDay = 1
+            slug = "log-meals",
+            title = "Log meals",
+            targetPerDay = 3
         )
         val logs = listOf(
             HabitLogEntity(
                 habitId = 5L,
                 dateEpochDay = yesterday.toEpochDay(),
-                count = 1,
-                note = "Full session"
+                count = 3,
+                note = "Full day"
             ),
             HabitLogEntity(
                 habitId = 5L,
                 dateEpochDay = today.toEpochDay(),
                 count = 1,
-                note = "${HabitWithLogs.GATEWAY_TAG} 2m Sahaj Gateway"
+                note = "$legacyTag Quick version"
             )
         )
         val hwl = HabitWithLogs(habit = habit, logs = logs)
-        assertTrue(hwl.isGatewayOn(today))
-        assertFalse(hwl.isGatewayOn(yesterday))
-        assertEquals(2, hwl.intensityLevelForDate(today))
-        assertEquals(4, hwl.intensityLevelForDate(yesterday))
 
+        // The tag no longer changes the heatmap level and is hidden from the note.
+        assertEquals(1, hwl.intensityLevelForDate(today))
+        assertEquals(4, hwl.intensityLevelForDate(yesterday))
+        assertEquals("Quick version", hwl.noteForDate(today))
+        assertEquals("Full day", hwl.noteForDate(yesterday))
+
+        // It still counts as a completed day so old streaks do not break.
         val stats = hwl.computeStats(today)
         assertEquals(2, stats.currentStreak)
         assertEquals(2, stats.bestStreak)
+    }
+
+    @Test
+    fun `streak milestones climb the ladder and then repeat every year`() {
+        assertEquals(7, nextStreakMilestone(0))
+        assertEquals(7, nextStreakMilestone(6))
+        assertEquals(14, nextStreakMilestone(7))
+        assertEquals(30, nextStreakMilestone(23))
+        assertEquals(60, nextStreakMilestone(30))
+        assertEquals(100, nextStreakMilestone(99))
+        assertEquals(200, nextStreakMilestone(100))
+        assertEquals(365, nextStreakMilestone(200))
+        assertEquals(730, nextStreakMilestone(365))
+        assertEquals(730, nextStreakMilestone(729))
+        assertEquals(1095, nextStreakMilestone(730))
+    }
+
+    @Test
+    fun `card status line shows milestone distance partial count or a prompt to start`() {
+        assertEquals("7 days to 30", streakDetailLabel(streak = 23, todayCount = 1, targetPerDay = 1))
+        assertEquals("1 day to 7", streakDetailLabel(streak = 6, todayCount = 1, targetPerDay = 1))
+        assertEquals("2 of 3 today", streakDetailLabel(streak = 41, todayCount = 2, targetPerDay = 3))
+        assertEquals("19 days to 60", streakDetailLabel(streak = 41, todayCount = 3, targetPerDay = 3))
+        assertEquals("Start today", streakDetailLabel(streak = 0, todayCount = 0, targetPerDay = 1))
     }
 }
