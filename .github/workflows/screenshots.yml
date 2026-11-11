@@ -1,9 +1,15 @@
 name: UI screenshots
 
-# Manual: boots an emulator, seeds sample habits, walks through the app and saves a
-# screenshot of each screen to the `ci-screenshots` branch (and as a run artifact).
+# Boots an emulator, seeds sample habits, walks through the app and saves a screenshot of
+# each screen to the `ci-screenshots` branch (and as a run artifact). Runs when this file
+# or the screenshot test changes on a claude/** branch. Manual runs need the file on main.
 on:
   workflow_dispatch:
+  push:
+    branches: [ "claude/**" ]
+    paths:
+      - ".github/workflows/screenshots.yml"
+      - "app/src/androidTest/**"
 
 permissions:
   contents: write
