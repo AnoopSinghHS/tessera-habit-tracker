@@ -118,8 +118,13 @@ class ScreenshotTour {
 
     @Test
     fun tour() {
-        seed()
         device.executeShellCommand("mkdir -p $dir")
+        // Fresh install: the app should open with the owner's own starter habits, not demo data.
+        ActivityScenario.launch(MainActivity::class.java).use {
+            device.wait(Until.findObject(By.textContains("bathroom by 6:30")), 15000)
+            shot("00-starter-habits")
+        }
+        seed()
         ActivityScenario.launch(MainActivity::class.java).use {
             device.wait(Until.findObject(By.text("Write 500 words")), 15000)
             shot("01-today")

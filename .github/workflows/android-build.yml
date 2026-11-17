@@ -59,6 +59,22 @@ jobs:
           path: dist/tessera-s26-ultra-debug.apk
           if-no-files-found: error
 
+      # Work-in-progress builds from claude/** branches go to one pre-release, always at the
+      # same link: https://github.com/<owner>/<repo>/releases/tag/preview
+      # It is marked as a pre-release so the in-app updater (which reads the latest full
+      # release) ignores it.
+      - name: Publish preview pre-release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/claude/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete preview --cleanup-tag --yes || true
+          gh release create preview dist/tessera-s26-ultra-release.apk dist/tessera-s26-ultra-debug.apk \
+            --prerelease \
+            --target "${{ github.sha }}" \
+            --title "Tessera preview (${{ github.ref_name }})" \
+            --notes "Work-in-progress build of branch ${{ github.ref_name }} at ${{ github.sha }}. Install tessera-s26-ultra-release.apk. If Android refuses to install over your existing copy, save a backup in Settings, uninstall, install this one, then load the backup."
+
       # Releases are published only from the default branch, tagged with the app's
       # versionName so the in-app updater can tell whether a release is newer.
       - name: Publish GitHub release

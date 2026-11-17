@@ -214,6 +214,10 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
         )
     )
 
+    init {
+        viewModelScope.launch { repository.ensureStarterHabits() }
+    }
+
     private fun readApiSummaryFromPrefs(): String {
         return apiEventPrefs.getString(HabitApiReceiver.KEY_LAST_EVENT_SUMMARY, null)
             ?: DEFAULT_API_SUMMARY

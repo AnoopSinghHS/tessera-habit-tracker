@@ -34,6 +34,19 @@ class TesseraRepository(
         habitDao.getHabitWithLogsBySlug(slug.trim())
     }
 
+    /**
+     * Adds [StarterHabits] once, on the first launch of an empty app. If the app already holds
+     * habits nothing is added and nothing is remembered, so clearing the data later and
+     * restarting adds them once; after that they are never added again.
+     */
+    suspend fun ensureStarterHabits() = withContext(Dispatchers.IO) {
+        val prefs = appContext.getSharedPreferences(STARTER_PREFS, Context.MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_STARTER_ADDED, false)) return@withContext
+        if (habitDao.getHabitCount() > 0) return@withContext
+        StarterHabits.all.forEach { saveHabit(it) }
+        prefs.edit().putBoolean(KEY_STARTER_ADDED, true).apply()
+    }
+
     suspend fun clearAllData() = withContext(Dispatchers.IO) {
         habitDao.deleteAllLogs()
         habitDao.deleteAllHabits()
@@ -224,5 +237,10 @@ class TesseraRepository(
             }
         }
         true
+    }
+
+    private companion object {
+        const val STARTER_PREFS = "tessera_starter"
+        const val KEY_STARTER_ADDED = "starter_habits_added_v1"
     }
 }
