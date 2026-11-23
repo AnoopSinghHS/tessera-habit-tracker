@@ -385,8 +385,8 @@ private fun RadioRow(
 }
 
 /**
- * A stand-in for the widget, drawn with the widget's own colours (not the app theme)
- * and the same heatmap renderer the real widget uses.
+ * A stand-in for the widget, drawn by the same renderer the real widget uses (with the
+ * title and button drawn in too), at a typical size for the chosen widget.
  */
 @Composable
 private fun WidgetPreview(
@@ -395,96 +395,32 @@ private fun WidgetPreview(
     isDarkWidget: Boolean
 ) {
     val context = LocalContext.current
-    val widgetColors = WidgetColors.of(isDarkWidget)
-    val shape = RoundedCornerShape(TesseraDimens.RadiusCard)
+    val style = remember { WidgetPrefs.getStyle(context) }
 
-    val heatmap = remember(habit, isDarkWidget, isCompactWidget) {
-        if (isCompactWidget) {
-            WidgetHeatmapBitmapRenderer.renderCompactHeatmap(
-                context = context,
-                habitWithLogs = habit,
-                isDarkTheme = isDarkWidget
-            ).asImageBitmap()
-        } else {
-            WidgetHeatmapBitmapRenderer.renderWideHeatmap(
-                context = context,
-                habitWithLogs = habit,
-                isDarkTheme = isDarkWidget
-            ).asImageBitmap()
-        }
+    val bitmap = remember(habit, isDarkWidget, isCompactWidget, style) {
+        val texts = HabitWidgetUpdater.widgetTexts(habit, shortText = true)
+        WidgetHeatmapBitmapRenderer.render(
+            context = context,
+            habitWithLogs = habit,
+            widthDp = if (isCompactWidget) 158f else 330f,
+            heightDp = 158f,
+            isDark = isDarkWidget,
+            style = style,
+            chrome = WidgetChrome(
+                title = texts.title,
+                streakText = texts.streak,
+                statusText = texts.status,
+                glyph = texts.glyph
+            )
+        ).asImageBitmap()
     }
 
-    val streak = habit?.computeStats()?.currentStreak ?: 0
-    val doneToday = habit?.isCompletedOn(LocalDate.now()) ?: false
-    val streakLine = when {
-        streak > 0 && isCompactWidget -> if (streak == 1) "1 day" else "$streak days"
-        streak > 0 -> "$streak-day streak"
-        doneToday -> "Done today"
-        else -> "Not done yet"
-    }
-
-    Column(
+    Image(
+        bitmap = bitmap,
+        contentDescription = "Widget preview",
         modifier = Modifier
             .then(if (isCompactWidget) Modifier.width(184.dp) else Modifier.fillMaxWidth())
-            .clip(shape)
-            .background(Color(widgetColors.surface))
-            .border(1.dp, Color(widgetColors.hairline), shape)
-            .padding(TesseraDimens.SpaceL),
-        verticalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceS)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = habit?.habit?.title.orEmpty(),
-                    style = TesseraType.BodyStrong,
-                    color = Color(widgetColors.textPrimary),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = streakLine,
-                    style = TesseraType.Supporting,
-                    color = if (streak > 0) {
-                        Color(widgetColors.accent)
-                    } else {
-                        Color(widgetColors.textSecondary)
-                    },
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            Spacer(modifier = Modifier.width(TesseraDimens.SpaceS))
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .then(
-                        if (doneToday) {
-                            Modifier.background(Color(widgetColors.accent), CircleShape)
-                        } else {
-                            Modifier.border(2.dp, Color(widgetColors.accent), CircleShape)
-                        }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = if (doneToday) "✓" else "+",
-                    style = TesseraType.Label,
-                    color = if (doneToday) {
-                        Color(widgetColors.onAccent)
-                    } else {
-                        Color(widgetColors.accent)
-                    }
-                )
-            }
-        }
-
-        Image(
-            bitmap = heatmap,
-            contentDescription = "Heatmap preview",
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(heatmap.width.toFloat() / heatmap.height.toFloat()),
-            contentScale = ContentScale.Fit
-        )
-    }
+            .aspectRatio(bitmap.width.toFloat() / bitmap.height.toFloat()),
+        contentScale = ContentScale.Fit
+    )
 }

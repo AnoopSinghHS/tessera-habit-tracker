@@ -55,6 +55,9 @@ import app.tessera.habit.ui.theme.TesseraType
 import app.tessera.habit.ui.viewmodel.TesseraUiState
 import app.tessera.habit.widget.HabitCompactWidgetProvider
 import app.tessera.habit.widget.HabitHeatmapWidgetProvider
+import app.tessera.habit.widget.HabitWidgetUpdater
+import app.tessera.habit.widget.WidgetPrefs
+import app.tessera.habit.widget.WidgetStyle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -171,6 +174,7 @@ fun ApiAndSettingsScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var updateStatus by remember { mutableStateOf<UpdateStatus>(UpdateStatus.NotChecked) }
     var pickedHabitId by remember { mutableStateOf<Long?>(null) }
+    var widgetStyle by remember { mutableStateOf(WidgetPrefs.getStyle(context)) }
 
     val createDocLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
@@ -320,6 +324,33 @@ fun ApiAndSettingsScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             )
+            Spacer(modifier = Modifier.height(TesseraDimens.SpaceL))
+            Text(
+                text = "Widget colour",
+                style = TesseraType.Label,
+                color = colors.textPrimary
+            )
+            Text(
+                text = "Each habit's colour is set in the habit editor. Tinted keeps the card neutral; " +
+                    "Wash tints the whole card.",
+                style = TesseraType.Supporting,
+                color = colors.textSecondary
+            )
+            Spacer(modifier = Modifier.height(TesseraDimens.SpaceS))
+            Row(horizontalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceS)) {
+                WidgetStyle.entries.forEach { option ->
+                    TesseraChip(
+                        text = option.label,
+                        selected = option == widgetStyle,
+                        onClick = {
+                            widgetStyle = option
+                            WidgetPrefs.setStyle(context, option)
+                            HabitWidgetUpdater.updateAllWidgets(context)
+                        },
+                        modifier = Modifier.heightIn(min = TesseraDimens.TouchTarget)
+                    )
+                }
+            }
         }
 
         // Backup

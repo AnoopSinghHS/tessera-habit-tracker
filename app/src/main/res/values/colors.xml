@@ -3,8 +3,8 @@
     <!-- Homestead page background (window, status bar). Same value as surfaceAbyss in Color.kt. -->
     <color name="page_background">#EFE3CE</color>
 
-    <!-- Launcher icon background: the Homestead accent. -->
-    <color name="ic_launcher_background">#17599F</color>
+    <!-- Launcher icon background (the original icon). -->
+    <color name="ic_launcher_background">#07080B</color>
 
     <!-- Widget on a light surface (Homestead). -->
     <color name="widget_light_surface">#FAF4E8</color>

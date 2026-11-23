@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Widgets that are small, tall or in between: the title and streak sit in the top-left, the
+  check-in button in the top-right. WidgetHeatmapBitmapRenderer draws the card and the
+  heatmap into the full-size image behind them, so the positions here (14dp from the edges,
+  a 48dp button centred on its 36dp circle) must match the renderer.
+  The picture and colours below are only what the widget picker shows; HabitWidgetUpdater
+  replaces them.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/widget_heatmap_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/widget_heatmap_content_desc"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_preview_heatmap" />
+
+    <LinearLayout
+        android:id="@+id/widget_header_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginEnd="58dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/widget_habit_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1"
+            android:text="Read 20 pages"
+            android:textColor="@color/widget_light_text"
+            android:textSize="16sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/widget_streak_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:text="14-day streak"
+                android:textColor="@color/widget_light_accent"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/widget_habit_subtitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text=" · Done"
+                android:textColor="@color/widget_light_text_secondary"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Check-in: a 48dp touch area centred on the 36dp circle drawn in the image. -->
+    <FrameLayout
+        android:id="@+id/widget_check_in_btn"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="8dp"
+        android:contentDescription="@string/widget_checkin_content_desc">
+
+        <TextView
+            android:id="@+id/widget_check_in_label"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:maxLines="1"
+            android:text="+"
+            android:textColor="@color/widget_light_accent"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </FrameLayout>
+
+</FrameLayout>

@@ -17,6 +17,7 @@ import app.tessera.habit.data.local.HabitEntity
 import app.tessera.habit.data.local.TesseraDatabase
 import app.tessera.habit.data.model.HabitWithLogs
 import app.tessera.habit.data.repository.TesseraRepository
+import app.tessera.habit.widget.WidgetPalette
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -255,12 +256,14 @@ class TesseraViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun openCreateHabitDialog() {
+        val allHabitCount = uiState.value.allHabits.size
         controlState.update { current ->
             // Keep a half-typed new-habit draft if the sheet was dismissed by accident.
             val draftToUse = if (current.editorDraft.hasUnsavedChanges && current.editingHabit == null) {
                 current.editorDraft
             } else {
-                HabitDraft()
+                // Give each new habit the next colour in turn.
+                HabitDraft(colorKey = WidgetPalette.defaultKeyFor(allHabitCount))
             }
             current.copy(
                 isEditorOpen = true,

@@ -14,6 +14,7 @@ object StarterHabits {
     val all: List<HabitEntity> = listOf(
         HabitEntity(
             slug = "up-by-630",
+            colorKey = "amber",
             title = "Up and in the bathroom by 6:30",
             category = "Sleep",
             iconKey = "sun",
@@ -26,6 +27,7 @@ object StarterHabits {
         ),
         HabitEntity(
             slug = "4k-steps",
+            colorKey = "emerald",
             title = "4,000 steps",
             category = "Body",
             iconKey = "run",
@@ -37,6 +39,7 @@ object StarterHabits {
         ),
         HabitEntity(
             slug = "practice",
+            colorKey = "violet",
             title = "Practice for an hour",
             category = "Skill",
             iconKey = "stopwatch",
@@ -50,6 +53,7 @@ object StarterHabits {
         ),
         HabitEntity(
             slug = "study-the-gap",
+            colorKey = "rose",
             title = "Study how to get better",
             category = "Skill",
             iconKey = "book",

@@ -62,6 +62,10 @@ import app.tessera.habit.ui.theme.TesseraTheme
 import app.tessera.habit.ui.theme.TesseraType
 import app.tessera.habit.ui.viewmodel.HabitDraft
 import java.util.Locale
+import androidx.compose.foundation.border
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.ui.graphics.Color
+import app.tessera.habit.widget.WidgetPalette
 
 private val categorySuggestions = listOf("Health", "Mind", "Work", "Home")
 
@@ -222,6 +226,14 @@ fun HabitEditorDialog(
                     IconPicker(
                         selectedKey = draft.iconKey,
                         onSelect = { onUpdateDraft(draft.copy(iconKey = it)) }
+                    )
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceS)) {
+                    SectionHeading(text = "Widget colour")
+                    ColorPicker(
+                        selectedKey = draft.colorKey,
+                        onSelect = { onUpdateDraft(draft.copy(colorKey = it)) }
                     )
                 }
 
@@ -458,6 +470,60 @@ private fun IconPicker(
                 // Keep cells in a short last row the same width as the rows above.
                 repeat(ICONS_PER_ROW - rowIcons.size) {
                     Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ColorPicker(
+    selectedKey: String,
+    onSelect: (String) -> Unit
+) {
+    val colors = TesseraTheme.colors
+    val selected = WidgetPalette.resolve(selectedKey).key
+    Column(verticalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceXs)) {
+        WidgetPalette.swatches.chunked(4).forEach { rowSwatches ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(TesseraDimens.SpaceS)
+            ) {
+                rowSwatches.forEach { swatch ->
+                    val isSelected = swatch.key == selected
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = TesseraDimens.TouchTarget)
+                            .selectable(
+                                selected = isSelected,
+                                role = Role.RadioButton,
+                                onClick = { onSelect(swatch.key) }
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(swatch.previewColor)
+                                .then(
+                                    if (isSelected) {
+                                        Modifier.border(3.dp, colors.textPrimary, CircleShape)
+                                    } else {
+                                        Modifier
+                                    }
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Check,
+                                contentDescription = swatch.label,
+                                tint = if (isSelected) Color.White else Color.Transparent,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 }
             }
         }

@@ -13,6 +13,8 @@ object WidgetPrefs {
     private const val KEY_THEME_PREFIX = "widget_theme_"
     private const val KEY_TAP_MODE_PREFIX = "widget_tap_mode_"
 
+    private const val KEY_STYLE = "widget_style"
+
     const val THEME_DARK = "dark"
     const val THEME_LIGHT = "light"
 
@@ -21,6 +23,14 @@ object WidgetPrefs {
 
     private fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    /** The colour style shared by every widget; see [WidgetStyle]. */
+    fun getStyle(context: Context): WidgetStyle =
+        WidgetStyle.fromKey(prefs(context).getString(KEY_STYLE, null))
+
+    fun setStyle(context: Context, style: WidgetStyle) {
+        prefs(context).edit().putString(KEY_STYLE, style.key).apply()
+    }
 
     fun getHabitId(context: Context, appWidgetId: Int): Long {
         return prefs(context).getLong("$KEY_HABIT_ID_PREFIX$appWidgetId", -1L)
