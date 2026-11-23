@@ -56,7 +56,8 @@ object WidgetHeatmapBitmapRenderer {
 
     private const val CARD_RADIUS = 28f
     const val BUTTON_RADIUS_DP = 18f
-    private const val HEADER_HEIGHT = 40f
+    /** Room above the heatmap for a two-line title and a status line. */
+    private const val HEADER_HEIGHT = 54f
     private const val SIDE_COLUMN_WIDTH = 104f
     private const val GAP_RATIO = 0.2f
     private const val LABEL_HEIGHT = 14f
@@ -289,7 +290,7 @@ object WidgetHeatmapBitmapRenderer {
         }
 
         val textWidth = if (shape == WidgetShape.SIDE) SIDE_COLUMN_WIDTH else w - 2 * PAD_DP - 44f
-        val maxTitleLines = if (shape == WidgetShape.SIDE) 2 else 1
+        val maxTitleLines = 2
 
         canvas.save()
         canvas.translate(PAD_DP, PAD_DP)
